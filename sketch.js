@@ -1,12 +1,52 @@
+// Game frame rate (used for Bob's legs moving)
+let personalFrameRate = 10;
+let personalFrameRateCount = 1;
+
 // Horizon
 const horizon = 432;
 
+// Font
+let font;
+let textStartX;
+let textStartY;
+
+// Interactions vars
+let isGameStarted = false;
+let isGameOver = false;
+let isLeft = false;
+let isRight = false;
+let isFalling = false;
+let isPlummeting = false;
+let isJumping = false;
+let isFound = false;
+
+// Speeds 
+let runningSpeed = 4;
+let jumpingSpeed = 10;
+let fallingSpeed = 5;
+
+// Jumping height
+let maxJumpHeight = 190;
+
 // Character
+let gameCharStart_x = -500;
+let gameCharacterOffSet = 22;
 let gameChar_x;
 let gameChar_y;
+let state = '';
+let primaryColor;
+let skinColor;
+let secondaryColor;
+let logoColor;
+let strokeColor;
+let trouserColor;
+
+// Keeps the amount of time Bob's shirt has 'flashed'
+let flashed = 0;
 
 // Canyon
 let canyon;
+let spikeHeight;
 
 // Tree
 let treePos_x;
@@ -16,7 +56,8 @@ let treePos_y;
 let collectable;
 
 // Cloud
-let cloud;
+let cloud_1;
+let cloud_2;
 
 // Mountain
 let mountain;
@@ -35,57 +76,60 @@ const grassColor = treeColor; // Grass color
 const earthColor = [202, 121, 37]; // Earth color
 const mountainColor = [183, 209, 216] // Mountain color
 
+function preload () {
+	font = loadFont('arcadeclassic.ttf');
+}
+
 function setup () {
 
-	/**********
-	Assignment. Game character.
-	2. 
-	/*********/
-	gameChar_x = 500;
+	// Character colors
+	primaryColor = color(223, 39, 59);
+	skinColor = color(228, 198, 128);
+	secondaryColor = color(68, 121, 187);
+	logoColor = color(255, 255, 255);
+	strokeColor = color(0, 0, 0);
+	trouserColor = color(95, 53, 48);
+
+	// Game character.
+	gameChar_x = gameCharStart_x;
 	gameChar_y = horizon
 
-	/**********
-	Assignment. Tree.
-	3. Change the following vars to test...
-	/*********/
-	treePos_x = 600;
+	// Tree.
+	treePos_x = 200;
 	treePos_y = horizon;
 
-	/**********
-	Assignment. Canyon.
-	4. Change the following vars to test...
-	/*********/
+	// Canyon.
 	canyon = {
-		x_pos: 150,
+		x_pos: 500,
 		width: 200
 	};
 
-	/**********
-	Assignment. Collectable.
-	5. Change the following vars to test...
-	/*********/
+	// Collectable.
 	collectable = {
-		x_pos: 360,
+		x_pos: 860,
 		y_pos: 394,
 		size: 50
 	};
 
-	/**********
-	Assignment. Cloud.
-	6a. Change the following vars to test...
-	/*********/
-	cloud = {
+	// Cloud.
+	cloud_1 = {
 		x_pos: 140,
 		y_pos: 160,
-		size: 50
+		size: 50,
+		color: [255, 255, 255]
 	};
 
-	/**********
-	Assignment. Mountain.
-	6b. Change the following vars to test...
-	/*********/
+	// Cloud.
+	cloud_2 = {
+		x_pos: 40,
+		y_pos: 40,
+		size: 10,
+		color: [255, 255, 255]
+	};
+
+	// Mountain.
 	mountain = {
-		x_pos: 200,
+		x_pos: 250,
 		y_pos: horizon,
 		size: 50
 	};
@@ -93,7 +137,19 @@ function setup () {
 	createCanvas(1024, 576);
 }
 
+let frameCount = 0;
+
 function draw () {
+
+	frameRate(120);
+
+	// Set our own framerate;
+	frameCount++;
+	if (frameCount % personalFrameRate === 0) {
+		frameCount = 0;
+		personalFrameRateCount++;
+	}
+
 	// Sky
 	background(...skyColor);
 
@@ -122,11 +178,26 @@ function draw () {
 		size: mountain.size
 	});
 
-	// Cloud
+	// Cloud 1
+	if (cloud_1.x_pos > width + cloud_1.size) {
+		cloud_1.x_pos = -3 * cloud_1.size;
+	}
 	renderCloud({
-		xPos: cloud.x_pos,
-		yPos: cloud.y_pos,
-		size: cloud.size
+		xPos: cloud_1.x_pos++,
+		yPos: cloud_1.y_pos,
+		size: cloud_1.size,
+		color: [255, 255, 255]
+	});
+
+	// Cloud 2
+	if (cloud_2.x_pos > width + cloud_2.size) {
+		cloud_2.x_pos = -3 * cloud_2.size;
+	}
+	renderCloud({
+		xPos: cloud_2.x_pos = cloud_2.x_pos + 0.5,
+		yPos: cloud_2.y_pos,
+		size: cloud_2.size,
+		color: [219, 247, 249]
 	});
 
 	// Trees
@@ -163,47 +234,180 @@ function draw () {
 	});
 
 	// Collectable/star
-	renderCollectable({
-		xPos: collectable.x_pos,
-		yPos: collectable.y_pos,
-		size: collectable.size
-	});
+	if (!isFound) {
+		renderCollectable({
+			xPos: collectable.x_pos,
+			yPos: collectable.y_pos,
+			size: collectable.size
+		});
+	}
 
-	// Character	
-	renderCharacter(gameChar_x, gameChar_y, '');
-	
-}
+	// Bob	
+	renderCharacter(gameChar_x, gameChar_y, state);
 
-function mousePressed () {
-	gameChar_x = mouseX;
-	gameChar_y = mouseY;
+	// Make Bob fall
+	if (isFalling) {
+		if (gameChar_y < horizon) {
+			gameChar_y += fallingSpeed;
+		} else {
+			isFalling = false;
+			if (state.match('-r')) {
+				state = 'walk-r';
+				return;
+			}
+			if (state.match('-l')) {
+				state = 'walk-l';
+				return;
+			}
+			state = '';
+		}
+	}
+
+	// Make Bob jump
+	if (isJumping) {
+		if (gameChar_y > horizon - maxJumpHeight) {
+			gameChar_y -= jumpingSpeed;
+		} else {
+			isJumping = false;
+			isFalling = true;
+		}
+		if (isRight && gameChar_x <= width - gameCharacterOffSet) {
+			gameChar_x += runningSpeed;
+			state = 'jump-r';
+			return;
+		}
+		if (isLeft && gameChar_x >= gameCharacterOffSet) {
+			gameChar_x -= runningSpeed;
+			state = 'jump-l';
+			return;
+		}
+		state = 'jump';
+	}
+
+	// Make Bob walk right {
+	if (isRight && gameChar_x < width - gameCharacterOffSet) {
+		state = 'walk-r';
+		gameChar_x += runningSpeed;
+	}
+
+	// Make Bob walk left {
+	if (isLeft && gameChar_x > gameCharacterOffSet) {
+		state = 'walk-l';
+		gameChar_x -= runningSpeed;
+	}
+
+	// Make Bob die
+	if (
+		(gameChar_x >= canyon.x_pos + (gameCharacterOffSet - 12))
+		&&
+		(gameChar_x <= ((canyon.x_pos + canyon.width) - (gameCharacterOffSet - 14)))
+		&&
+		(!isJumping && !isFalling)
+	) {
+		isPlummeting = true;
+		if (gameChar_x <= canyon.x_pos + 24) {
+			gameChar_x = canyon.x_pos + 24;
+		}
+		if (state.match('-l')) {
+			state = 'jump-l';
+		}
+		if (state.match('-r')) {
+			state = 'jump-r';
+		}
+		if (!isGameOver && gameChar_y < spikeHeight) {
+			console.warn(3);
+			gameChar_y += fallingSpeed;
+		} else {
+			state = '';
+			isGameOver = true;
+			isGameStarted = false;
+			isRight = false;
+			isLeft = false;
+			isJumping = false;
+			isFalling = false;
+			isPlummeting = false;
+			gameChar_y = gameChar_y - 5;
+			gameChar_x = gameChar_x;
+		}
+	}
+
+	// Make Bob get a collectable
+	if (
+		gameChar_x > (collectable.x_pos - (collectable.size / 2))
+		&&
+		gameChar_x < (collectable.x_pos + (collectable.size + collectable.size / 2))
+	) {
+		isFound = true;
+	}
+
+	// Game text
+	textStartX = width / 2;
+	textStartY = !isGameStarted && !isGameOver ? height / 2 - 50 : -2000;
+
+	textGameOverX = width / 2;
+	textGameOverY = isGameOver && !isGameStarted ? height / 2 - 50 : -2000;
+
+	textRestartX = width / 2;
+	textRestartY = isGameOver  && !isGameStarted ? height / 2 : -2000;
+
+	fill(255, 255, 0);
+	textFont(font);
+	textSize(80);
+	textAlign(CENTER);
+	text('PRESS ANY KEY TO START', textStartX, textStartY);
+
+	text('GAME OVER', textGameOverX, textGameOverY);
+
+	textSize(50);
+	text('PRESS ANY KEY TO RESTART', textRestartX, textRestartY);
+
 }
 
 // Function to drawer the character
-function renderCharacter (x, y, state) {
-	var characterWidth = 26;
-	var state = state || '';
+function renderCharacter (x, y, _state) {
+	let state = _state || '';
+	const gameCharacterWidth = 26;
+	const gameCharacterStrokeWidth = 2;
+
+	if (isGameOver) {
+		primaryColor = color(255);
+		skinColor = color(249, 240, 220);
+		secondaryColor = color(255);
+		logoColor = color(100, 100, 100);
+		trouserColor = color(255);
+	}
 
 	// Hat
 	var hatYPos = y - 65;
 	if (state.match(/jump/)) {
 		hatYPos = y - 70;
 	}
-	strokeWeight(2);
+	strokeWeight(gameCharacterStrokeWidth);
 
-	fill(223, 39, 59);
-	rect(x - (characterWidth / 2), hatYPos, characterWidth, 5);
+	fill(primaryColor);
+	rect(x - (gameCharacterWidth / 2), hatYPos, gameCharacterWidth, 5);
 
 	// Head
-	fill(228, 198, 128);
-	rect(x - (characterWidth / 2), y - 60, characterWidth, 25);
+	fill(skinColor);
+	rect(x - (gameCharacterWidth / 2), y - 60, gameCharacterWidth, 25);
 
 	// Body
-	fill(223, 39, 59);
-	rect(x - (characterWidth / 2), y - 35, characterWidth, 20);
-	textSize(18);
+	if (isFound && flashed < 40) {
+		console.warn('1');
+		if (personalFrameRateCount % 2 === 0) {
+			console.warn('flashing');
+			fill(255, 255, 0);
+			flashed++;
+		} else {
+			fill(primaryColor);
+		}
+	} else {
+		fill(primaryColor);
+	}
+	rect(x - (gameCharacterWidth / 2), y - 35, gameCharacterWidth, 20);
+	textSize(20);
 	textStyle(BOLD);
-	fill(255);
+	fill(logoColor);
 	let jumperOffset = 6;
 	if (state.match(/-l/)) {
 		jumperOffset = 2;
@@ -211,72 +415,85 @@ function renderCharacter (x, y, state) {
 	if (state.match(/-r/)) {
 		jumperOffset = 11;
 	}
-	text('B', x - (characterWidth / 2) + jumperOffset, y - 19);
+	text('B', (x - (gameCharacterWidth / 2)) + 6 + jumperOffset, y - 19);
 
 	// Legs
 	var legYPos = y - 15;
-	var legXPosR = x + ((characterWidth / 2) - 10);
-	var legXPosL = x - (characterWidth / 2);
+	var legXPosR = x + ((gameCharacterWidth / 2) - 10);
+	var legXPosL = x - (gameCharacterWidth / 2);
 	var legHeighL = 15;
 	var legHeighR = 15;
 	if (state.match('jump')) {
 		legYPos = y - 25;
 	}
+
 	if (state.match('-l')) {
 		legXPosR = legXPosR - 4;
-		legHeighL = 10;
+		if (personalFrameRateCount % 2 === 0) {
+			legHeighL = 15;
+			legHeighR = 10;
+		} else {
+			legHeighR = 15;
+			legHeighL = 10;
+		}
 	}
 	if (state.match('-r')) {
 		legXPosL = legXPosL + 4;
-		legHeighR = 10;
+		if (personalFrameRateCount % 2 === 0) {
+			legHeighL = 15;
+			legHeighR = 10;
+		} else {
+			legHeighR = 15;
+			legHeighL = 10;
+		}
 	}
 	
 	// Left leg
-	fill(95, 53, 48);
+	fill(trouserColor);
 	rect(legXPosL, legYPos, 10, legHeighL);
 
 	// Right leg
-	fill(95, 53, 48);
+	fill(trouserColor);
 	rect(legXPosR, legYPos, 10, legHeighR);
 
 	// Arms
 	var armYPos = y - 38;
 	var armWidthL = 8;
 	var armWidthR = 8;
-	var armXPosR = x + (characterWidth / 2);
-	var armXPosL = x - (characterWidth / 2) - armWidthL;
+	var armXPosR = x + (gameCharacterWidth / 2);
+	var armXPosL = x - (gameCharacterWidth / 2) - armWidthL;
 	if (state.match('jump')) {
 		armYPos = y - 42;
 	}
 	if (state.match('-l')) {
 		armWidthL = 4;
-		armXPosL = x - (characterWidth / 2) - armWidthL;
-		armXPosR = x + ((characterWidth / 2) - 18);
+		armXPosL = x - (gameCharacterWidth / 2) - armWidthL;
+		armXPosR = x + ((gameCharacterWidth / 2) - 18);
 	}
 	if (state.match('-r')) {
 		armWidthR = 4;
-		armXPosL = x - (characterWidth / 2) + 10;
-		armXPosR = x + (characterWidth / 2);
+		armXPosL = x - (gameCharacterWidth / 2) + 10;
+		armXPosR = x + (gameCharacterWidth / 2);
 	}
 
 	// Left arm
-	fill(68, 121, 187);
+	fill(secondaryColor);
 	rect(armXPosL, armYPos, armWidthL, 20);
 
 	// Right arm
-	fill(68, 121, 187);
+	fill(secondaryColor);
 	rect(armXPosR, armYPos, armWidthR, 20);
 
 	// Eyes
-	let eyeXPosL = x - (characterWidth / 2) + 6;
+	let eyeXPosL = x - (gameCharacterWidth / 2) + 6;
 	let pupilXPosL = eyeXPosL + 2;
 	
 	if (state.match('-l')) {
-		eyeXPosL = x - (characterWidth / 2) + 2;
+		eyeXPosL = x - (gameCharacterWidth / 2) + 2;
 		pupilXPosL = eyeXPosL + 1;
 	}
 	if (state.match('-r')) {
-		eyeXPosL = x + (characterWidth / 2) - 16;
+		eyeXPosL = x + (gameCharacterWidth / 2) - 16;
 		pupilXPosL = eyeXPosL + 3;
 	}
 
@@ -286,21 +503,21 @@ function renderCharacter (x, y, state) {
 	}
 
 	// Left eye
-	stroke(0);
+	stroke(strokeColor);
 	strokeWeight(1);
 	fill(255);
 	rect(eyeXPosL, y - 55, 5, 5);
 	noStroke();
-	fill(0, 255, 0);
+	fill(34,139,34);
 	rect(pupilXPosL, pupilYPos, 2, 2);
 
 	// Right eye
-	stroke(0);
+	stroke(strokeColor);
 	strokeWeight(1);
 	fill(255);
 	rect(eyeXPosL + 8, y - 55, 5, 5);
 	noStroke();
-	fill(0, 255, 0);
+	fill(34,139,34);
 	rect(pupilXPosL + 8, pupilYPos, 2, 2);
 
 	// Mouth
@@ -320,11 +537,11 @@ function renderCharacter (x, y, state) {
 			jumpXPosDiff = 22;
 			jumpYPosDiff = 44;
 		}
-		fill(0);
+		fill(strokeColor);
 		noStroke(0);
-		ellipse(x + (characterWidth / 2) - jumpXPosDiff, y - jumpYPosDiff, jumpWidth, jumpHeight);
+		ellipse(x + (gameCharacterWidth / 2) - jumpXPosDiff, y - jumpYPosDiff, jumpWidth, jumpHeight);
 	} else {
-		stroke(0);
+		stroke(strokeColor);
 		strokeWeight(1);
 		noFill();
 		let mouthPosLOffset = 6;
@@ -334,18 +551,22 @@ function renderCharacter (x, y, state) {
 		if (state.match(/-r/)) {
 			mouthPosLOffset = 9;
 		}
+
+		const mouthOffSet = isGameOver ? -4 : 4;
+		const mouthPosYOffSet = isGameOver ? 4 : 0;
+
 		bezier(
-			x - (characterWidth / 2) + mouthPosLOffset,
-			y - 45,
+			x - (gameCharacterWidth / 2) + mouthPosLOffset,
+			y - (45 - mouthPosYOffSet),
 			
-			x - (characterWidth / 2) + mouthPosLOffset + 2,
-			(y - 45) + 4,
+			x - (gameCharacterWidth / 2) + mouthPosLOffset + 2,
+			(y - (45 - mouthPosYOffSet)) + mouthOffSet,
 
-			x - (characterWidth / 2) + mouthPosLOffset + 14,
-			(y - 45) + 4,
+			x - (gameCharacterWidth / 2) + mouthPosLOffset + 14,
+			(y - (45 - mouthPosYOffSet)) + mouthOffSet,
 
-			x - (characterWidth / 2) + mouthPosLOffset + 15,
-			y - 45
+			x - (gameCharacterWidth / 2) + mouthPosLOffset + 15,
+			y - (45 - mouthPosYOffSet)
 		);
 	}
 	
@@ -407,11 +628,12 @@ function renderCloud (config) {
 	const size = config.size || 50;
 	const xPos = config.xPos || 140;
 	const yPos = config.yPos || 150;
+	const color = config.color || [255, 255, 255];
 	const largeCloud = size * 2;
 	const smallCloud = ((largeCloud / 100) * 70);
 
 	noStroke();
-	fill(255, 255, 255);
+	fill(...color);
 	// Left circle
 	ellipse(xPos, yPos + ((largeCloud / 100) * 10), smallCloud, smallCloud);
 	// Centre circle
@@ -457,7 +679,8 @@ function renderCanyon (config) {
 		let spikeNum = 0;
 		for (let i = 0; i < width - spikeSize; i = i + (spikeSize * 2)) {
 			let _xPos = xPos + ((spikeSize * spikeNum) * 2);
-			triangle(_xPos, height - strokeWidth, _xPos + spikeSize, height - (3 * spikeSize), _xPos + (2 * spikeSize), height - strokeWidth);
+			spikeHeight = height - (3 * spikeSize);
+			triangle(_xPos, height - strokeWidth, _xPos + spikeSize, spikeHeight, _xPos + (2 * spikeSize), height - strokeWidth);
 			spikeNum++;
 		}
 	}
@@ -489,4 +712,80 @@ function renderCollectable (config) {
 	vertex(xPos + ratio * 8, yPos + ratio * 7); // 10
 	endShape(CLOSE);
 	pop();
+}
+
+// Events
+function mousePressed () {
+	startGame();
+}
+
+function startGame () {
+	primaryColor = [223, 39, 59];
+	skinColor = [228, 198, 128];
+	secondaryColor = [68, 121, 187];
+	logoColor = [255, 255, 255];
+	strokeColor = [0, 0, 0];
+	trouserColor = [95, 53, 48];
+
+	isGameStarted = true;
+	isGameOver = false;
+	isFalling = false;
+	isPlummeting = false;
+	isLeft = false;
+	isRight = false;
+	isJumping = false;
+	isFound = false;
+	gameChar_x = 50;
+	gameChar_y = horizon;
+	state = '';
+	flashed = 0;
+
+	renderCharacter(gameChar_x, gameChar_y, state);
+}
+
+function keyPressed () {
+	if (!isGameStarted) {
+		startGame();
+		return;
+	};
+	if (isGameOver) return;
+	// Right arrow
+	if (keyCode && keyCode === 39) {
+		isRight = true;
+	}
+	// Left arrow
+	if (keyCode && keyCode === 37) {
+		isLeft = true;
+	}
+	// Spacebar or arrow up
+	if (keyCode && (keyCode === 32 || keyCode === 38)) {
+		if (gameChar_y === horizon) {
+			isJumping = true;
+		}
+	}
+}
+
+function keyReleased () {
+	if (!isGameStarted) return;
+	if (isGameOver) {
+		state = '';
+		return;
+	}
+	// Right arrow
+	if (keyCode && keyCode === 39) {
+		isRight = false;
+		state = '';
+		return;
+	}
+	// Left arrow
+	if (keyCode && keyCode === 37) {
+		isLeft = false;
+		state = '';
+		return;
+	}
+	// Spacebar or arrow up
+	if (keyCode && (keyCode === 32 || keyCode === 38)) {
+		isJumping = false;
+		isFalling = true;
+	}
 }
