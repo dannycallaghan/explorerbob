@@ -2,88 +2,240 @@
 
 The Game Project
 
-1 - Background Scenery
+2 - Game character
 
 Use p5 drawing functions such as rect, ellipse, line, triangle and
-point to draw the scenery as set out in the code comments. The items
-should appear next to the text titles.
+point to draw the different states of your game character.
 
-Each bit of scenery is worth two marks:
+Write the code so that your character appears inside the box for each
+state.
+
+IMPORTANT: For each box the variables gameChar_x & gameChar_y are set to the bottom
+center of the box. You must combine these variables with arithmetic to
+determine the position of each shape that you draw. This will later allow
+you to adjust the position of your game character.
+
+Each state is worth two marks:
+
+//standing front facing = 2
+//jumping facing forwards = 2
+//walking left = 2
+//walking right = 2
+//jumping left and jumping right = 2
 
 0 marks = not a reasonable attempt
-1 mark = attempted but it's messy or lacks detail
-2 marks = you've used several shape functions to create the scenery
+1 mark = attempted but it lacks detail and you didn't use gameChar_x and gameChar_y correctly
+2 marks = you've used a selction of shape functions and made consistent use of gameChar_x and gameChar_y
 
-I've given titles and chosen some base colours, but feel free to
-imaginatively modify these and interpret the scenery titles loosely to
-match your game theme.
-
-
-WARNING: Do not get too carried away. If you're shape takes more than 5 lines
+WARNING: Do not get too carried away. If you're character takes more than 5 lines
 of code to draw then you've probably over done it.
 
+** Only submit your sketch.js **
 
 */
 
-function setup () {
-	createCanvas(1024, 576);
+var gameChar_x = 0;
+var gameChar_y = 0;
+
+function setup()
+{
+	createCanvas(400, 600);
 }
 
-function draw () {
-	background(100, 155, 255); //fill the sky blue
+function draw()
+{
+	background(255);
 
+	//Standing, facing frontwards
+
+	stroke(100);
+	noFill();
+	rect(20, 60, 50, 80);
 	noStroke();
-	fill(0, 155, 0);
-	rect(0, 432, 1024, 144); //draw some green ground
+	fill(0);
+	text("1. standing front facing", 20, 160);
 
-	// 1. a cloud in the sky
-	fill(255, 255, 255);
-	ellipse(200, 150, 100, 100);
-	ellipse(140, 160, 70, 70);
-	ellipse(260, 160, 70, 70);
+	gameChar_x = 45;
+	gameChar_y = 137;
+	//Add your code here ...
 
-	// 2. a mountain in the distance
-	fill(102, 102, 102);
-	triangle(200, 432, 375, 250, 550, 432);
-	triangle(325, 432, 475, 300, 625, 432);
+	function drawCharacter (x, y, state) {
+		var characterWidth = 26;
+		var state = state || '';
 
-	// 3. a tree
-	fill(149, 102, 34);
-	rect(800, 282, 60, 150);
+		// Hat
+		var hatYPos = y - 65;
+		if (state.match(/jump/)) {
+			hatYPos = y - 70;
+		}
+		fill(223, 39, 59);
+		rect(x - (characterWidth / 2), hatYPos, characterWidth, 5);
 
-	// 3b. branches
-	fill(0, 155, 0)
-	triangle(750, 352, 830, 232, 910, 352)
-	triangle(770, 292, 830, 192, 890, 292)
+		// Head
+		fill(228, 198, 128);
+		rect(x - (characterWidth / 2), y - 60, characterWidth, 25);
 
-	// 4. a canyon
-	strokeWeight(1);
-	fill(93, 60, 27);
-	beginShape();
-	vertex(100, 432);
-	vertex(150, 432);
-	vertex(320, 576);
-	vertex(120, 576);
-	endShape(CLOSE);
+		// Body
+		fill(223, 39, 59);
+		rect(x - (characterWidth / 2), y - 35, characterWidth, 20);
 
-	fill(100, 155, 255);
-	beginShape();
-	vertex(100, 432);
-	vertex(150, 432);
-	vertex(150, 457);
-	vertex(103, 457);
-	endShape(CLOSE);
+		// Legs
+		var legYPos = y - 15;
+		var legXPosR = x + ((characterWidth / 2) - 10);
+		var legXPosL = x - (characterWidth / 2);
+		var legHeighL = 15;
+		var legHeighR = 15;
+		if (state.match('jump')) {
+			legYPos = y - 25;
+		}
+		if (state.match('-l')) {
+			legXPosR = legXPosR - 4;
+			legHeighL = 10;
+		}
+		if (state.match('-r')) {
+			legXPosL = legXPosL + 4;
+			legHeighR = 10;
+		}
+		
+		// Left leg
+		fill(95, 53, 48);
+		rect(legXPosL, legYPos, 10, legHeighL);
+
+		// Right leg
+		fill(95, 53, 48);
+		rect(legXPosR, legYPos, 10, legHeighR);
+
+		// Arms
+		var armYPos = y - 38;
+		var armWidthL = 8;
+		var armWidthR = 8;
+		var armXPosR = x + (characterWidth / 2);
+		var armXPosL = x - (characterWidth / 2) - armWidthL;
+		if (state.match('jump')) {
+			armYPos = y - 42;
+		}
+		if (state.match('-l')) {
+			armWidthL = 4;
+			armXPosL = x - (characterWidth / 2) - armWidthL;
+			armXPosR = x + ((characterWidth / 2) - 18);
+		}
+		if (state.match('-r')) {
+			armWidthR = 4;
+			armXPosL = x - (characterWidth / 2) + 10;
+			armXPosR = x + (characterWidth / 2);
+		}
+
+		// Left arm
+		fill(68, 121, 187);
+		rect(armXPosL, armYPos, armWidthL, 20);
+
+		// Right arm
+		fill(68, 121, 187);
+		rect(armXPosR, armYPos, armWidthR, 20);
+
+		// Eyes
+		var eyeXPosL = x - (characterWidth / 2) + 8;
+		if (state.match('-l')) {
+			eyeXPosL = x - (characterWidth / 2) + 2;
+		}
+		if (state.match('-r')) {
+			eyeXPosL = x + (characterWidth / 2) - 12;
+		}
+
+		// Left eye
+		fill(0);
+		rect(eyeXPosL, y - 55, 4, 4);
+
+		// Right eye
+		fill(0);
+		rect(eyeXPosL + 6, y - 55, 4, 4);
+
+		// Mouth
+		var mouthPosLOffset = 6;
+		if (state.match('-l')) {
+			mouthPosLOffset = 2;
+		}
+		if (state.match('-r')) {
+			mouthPosLOffset = (characterWidth / 2) - 3;
+		}
+		fill(255);
+		triangle(
+			x - (characterWidth / 2) + mouthPosLOffset, y - 46,
+			x - (characterWidth / 2) + mouthPosLOffset + 14, y - 48,
+			x - (characterWidth / 2) + mouthPosLOffset + 14, y - 44
+		);
+	}
+
+	drawCharacter(gameChar_x, gameChar_y);
 	
-	//5. a collectable token - eg. a jewel, fruit, coins
-	strokeWeight(3);
-	stroke(120, 92, 5);
-	fill(237, 185, 26);
-	ellipse(430, 402, 60, 60);
-	fill(255, 255, 0);
-	ellipse(430, 402, 50, 50);
-	fill(232, 214, 161);
-	strokeWeight(5);
-	textSize(40);
-	textStyle(BOLD);
-	text('1', 419, 416);
+	//Jumping facing forwards
+	stroke(100);
+	noFill();
+	rect(220, 60, 50, 80);
+	noStroke();
+	fill(0);
+	text("2. jumping facing forwards", 220, 160);
+
+	gameChar_x = 245;
+	gameChar_y = 137;
+	//Add your code here ...
+
+	drawCharacter(gameChar_x, gameChar_y, 'jump');
+
+	//Walking, turned left
+	stroke(100);
+	noFill();
+	rect(20, 260, 50, 80);
+	noStroke();
+	fill(0);
+	text("3. Walking left", 20, 360);
+
+	gameChar_x = 45;
+	gameChar_y = 337;
+	//Add your code here ...
+
+	drawCharacter(gameChar_x, gameChar_y, 'walk-l');
+
+	//Walking, turned right
+	stroke(100);
+	noFill();
+	rect(220, 260, 50, 80);
+	noStroke();
+	fill(0);
+	text("4. Walking right", 220, 360);
+
+	gameChar_x = 245;
+	gameChar_y = 337;
+	//Add your code here ...
+
+	drawCharacter(gameChar_x, gameChar_y, 'walk-r');
+
+	//Jumping right
+	stroke(100);
+	noFill();
+	rect(20, 460, 50, 80);
+	noStroke();
+	fill(0);
+	text("5. Jumping to the right", 20, 560);
+
+	gameChar_x = 45;
+	gameChar_y = 537;
+	//Add your code here ...
+
+	drawCharacter(gameChar_x, gameChar_y, 'jump-r');
+
+	//Jumping to the left
+	stroke(100);
+	noFill();
+	rect(220, 460, 50, 80);
+	noStroke();
+	fill(0);
+	text("6. Jumping to the left", 220, 560);
+
+	gameChar_x = 245;
+	gameChar_y = 537;
+	//Add your code here ...
+
+	drawCharacter(gameChar_x, gameChar_y, 'jump-l');
+
 }
