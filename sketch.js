@@ -1,11 +1,14 @@
+const isTestMode = false; // Can't die in test mode - easier for developing
+
 // Game frame rate (used for Bob's legs moving and jumper flashing when he finds something) 
 let personalFrameRate = 10;
 let personalFrameRateCount = 1;
 let frameCount = 0;
 
 // Game settings
-const gameWorldSize = 5000;
+const gameWorldSize = 3000;
 const gameWorldOffsetLeft = -500;
+const gameWorldStopRight = gameWorldSize + Math.abs(gameWorldOffsetLeft);
 
 // Scrolling speeds
 const scrollSpeedClouds = 0.2;
@@ -31,7 +34,7 @@ let isFound = false;
 
 // Speeds 
 let runningSpeed = 6;
-let jumpingSpeed = 8;
+let jumpingSpeed = 6;
 let fallingSpeed = 5;
 
 // Jumping height
@@ -56,6 +59,9 @@ let flashed = 0;
 let canyonSpikeHeight;
 let canyons;
 
+// Trees
+let trees;
+
 // Collectables position and status
 let collectables;
 
@@ -68,6 +74,7 @@ const grassColor = treeColor; // Grass color
 const earthColor = [202, 121, 37]; // Earth color
 const mountainColor = [183, 209, 216] // Mountain color
 const mountainSnowColor = [220, 232, 234] // Mountain snow color
+const canyonColor = [166, 190, 198] // The canyon background
 
 // Character colors
 let primaryColor = [223, 39, 59];
@@ -82,7 +89,7 @@ let eyeColor = [34,139,34];
 let scrollPos = [];
 
 function preload () {
-	font = loadFont(fontFile);
+	//font = loadFont(fontFile);
 }
 
 function setup () {
@@ -94,10 +101,6 @@ function setup () {
 
 
 function draw () {
-
-	// if (gameCharXInWorld) {
-	// 	console.warn(gameCharXInWorld);
-	// }
 
 	// Set a personal frame rate (half the game frame rate)
 	// so we can do things slow enough to be visible
@@ -159,6 +162,7 @@ function draw () {
 	// Draw the clouds
 	renderClouds([
 		{ x: 140, y: 160, size: 50 },
+		{ x: 800, y: 120, size: 30 },
 		{ x: 40, y: 40, size: 10, color: [219, 247, 249] }
 	]);
 	
@@ -170,8 +174,11 @@ function draw () {
 
 	// Draw the mountains
 	renderMountains([
+		{ x: 50, size: 30 },
 		{ x: 550, size: 50 },
-		{ x: 50, size: 30 }
+		{ x: 1300, size: 60 },
+		{ x: 2000, size: 40 },
+		{ x: 2600, size: 30 },
 	]);
 
 	// Stop second scrolling effect
@@ -183,7 +190,10 @@ function draw () {
 	// Draw the trees
 	renderTrees([
 		{ x: 10, bushes: [ { height: 80, rightSideHeight: 0 }, { height: 150, rightSideHeight: 75 }, { height: 100 } ] },
-		{ x: 720, bushes: [ { height: 60, rightSideHeight: 0 }, { height: 100, rightSideHeight: 50 }, { height: 60 } ] }
+		{ x: 720, bushes: [ { height: 60, rightSideHeight: 0 }, { height: 100, rightSideHeight: 50 }, { height: 60 } ] },
+		{ x: 1300, bushes: [ { height: 90, rightSideHeight: 0 }, { height: 120, rightSideHeight: 60 }, { height: 80 } ] },
+		{ x: 2160, bushes: [ { height: 50, rightSideHeight: 0 }, { height: 60, rightSideHeight: 30 }, { height: 50 } ] },
+		{ x: 2500, bushes: [ { height: 80, rightSideHeight: 0 }, { height: 140, rightSideHeight: 70 }, { height: 60 } ] },
 	]);
 
 	// Stop third scrolling effect
@@ -204,14 +214,17 @@ function draw () {
 
 	// Draw the canyon
 	renderCanyons([
-		{ x: 200, width: 100 },
-		{ x: 600, width: 200 }
+		{ x: 500, width: 120 },
+		{ x: 1200, width: 120 },
+		{ x: 2000, width: 100 }
 	]);
 
 	// Draw the collectables
 	renderCollectables([
-		{ x: 100, y: 394, size: 50, found: false },
-		{ x: 800, y: 294, size: 50, found: true }
+		{ x: 550, y: 294, size: 50, found: false },
+		{ x: 1210, y: 294, size: 50, found: false },
+		{ x: 1600, y: 394, size: 50, found: false },
+		{ x: 2300, y: 394, size: 50, found: false }
 	]);
 
 	// Stop fourth scrolling effect
@@ -233,14 +246,26 @@ function scrollStart (speed) {
 	if (!scrollPos[speed]) {
 		scrollPos[speed] = 0;
 	}
-	if (gameCharX < width * 0.2 && isLeft) {
-		console.warn(scrollPos[speed], gameWorldOffsetLeft);
-		if (-Math.abs(scrollPos[speed]) >= gameWorldOffsetLeft + 1) {
+	if (gameCharX < width * 0.3 && isLeft) {
+		if (
+			(scrollPos[scrollPos.length - 1] >= 0
+			&& scrollPos[scrollPos.length - 1] < Math.abs(gameWorldOffsetLeft))
+			|| 
+			(scrollPos[scrollPos.length - 1] < 0)
+		) {
 			scrollPos[speed] += speed;
 		}
 	}
-	if (gameCharX > width * 0.8 && isRight) {
-		scrollPos[speed] -= speed;
+	if (gameCharX > width * 0.7 && isRight) {
+		if (
+			((scrollPos[scrollPos.length - 1] <= 0)
+			&&
+			((scrollPos[scrollPos.length - 1] - width) >= -Math.abs(gameWorldStopRight - width)))
+			||
+			(scrollPos[scrollPos.length - 1] > 0)
+		) {
+			scrollPos[speed] -= speed;
+		}
 	}
 	if (speed < 1) {
 		scrollPos[speed] += speed;
@@ -258,13 +283,23 @@ function scrollStop () {
 function walk () {
 	const speed = isFalling ? fallingSpeed : runningSpeed;
 	if (state.match(/-r/)) {
-		if(gameCharX < width * 0.8) {
-			gameCharX += speed;
+		const ratio = (scrollPos[scrollPos.length - 1] - width) <= -Math.abs(gameWorldStopRight - width) ? 1 : 0.7;
+		if (ratio === 1) {
+			console.warn(scrollPos[scrollPos.length - 1] - width, -Math.abs(gameWorldStopRight - width));
+		}
+		if(gameCharX < width * ratio) {
+			if (gameCharX < (width - gameCharacterWidth)) {
+				gameCharX += speed;
+			}
+		}
+		if (ratio === 1) {
+			console.warn(gameCharX);
 		}
 		return;
 	}
 	if (state.match(/-l/)) {
-		if (gameCharX > width * 0.2) {
+		const ratio = scrollPos[scrollPos.length - 1] === Math.abs(gameWorldOffsetLeft) ? 0 : 0.3;
+		if (gameCharX > width * ratio) {
 			gameCharX -= speed;
 		}
 		return;
@@ -281,12 +316,12 @@ function jump () {
 		isFalling = true;
 	}
 	if (isRight && gameCharX + gameCharXOffsetR < width) {
-		gameCharX += runningSpeed;
+		gameCharX += jumpingSpeed;
 		state = 'jump-r';
 		return;
 	}
 	if (isLeft && gameCharX + gameCharXOffsetL > 0) {
-		gameCharX -= runningSpeed;
+		gameCharX -= jumpingSpeed;
 		state = 'jump-l';
 		return;
 	}
@@ -335,7 +370,9 @@ function renderGameText () {
 	push();
 
 	fill(255, 255, 0);
-	textFont(font);
+	stroke(0);
+	strokeWeight(2);
+	textFont('Impact');
 
 	// Start text
 	const textStartX = width / 2;
@@ -360,6 +397,7 @@ function renderGameText () {
 
 // Function to make Bob die
 function die () {
+	if (isTestMode) { return; }
 	canyons.map(canyon => {
 		//if (gameCharX + gameCharXOffsetR > canyon.x1 && gameCharX < canyon.x2 && (!isJumping && !isFalling)) {
 		if (gameCharXInWorld + gameCharXOffsetR > canyon.x1 && gameCharXInWorld < canyon.x2 && (!isJumping && !isFalling)) {
@@ -619,7 +657,7 @@ function renderGrass (data) {
 	stroke(0);
 	strokeWeight(2);
 	fill(...grassColor);
-	for (let grassStartPos = gameWorldOffsetLeft; grassStartPos < gameWorldSize; grassStartPos = grassStartPos + 36) {
+	for (let grassStartPos = gameWorldOffsetLeft; grassStartPos < (gameWorldSize + gameWorldOffsetLeft); grassStartPos = grassStartPos + 36) {
 		bezier(grassStartPos, yPos + 20, grassStartPos + 20, yPos + 40, grassStartPos + 40, yPos + 40, grassStartPos + 60, yPos + 20);
 		grassStartPos = grassStartPos + 60;
 		bezier(grassStartPos, yPos + 20, grassStartPos + 12, yPos + 35, grassStartPos + 24, yPos + 35, grassStartPos + 36, yPos + 20);
@@ -681,6 +719,14 @@ function renderTrees (data) {
 			rect((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2), yPos - (bushes[p].height / 4) + 1, bushWidth / 4, bushes[p].height / 4);
 			line((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2) - (bushWidth / 15), yPos - (bushes[p].height / 4) + 1, ((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2) - 5) + (bushWidth / 4) + ((bushWidth / 15) * 2), yPos - (bushes[p].height / 4) + 1);
 		}
+		// Add item to canyons array
+		trees = trees || [];
+		if (!trees[i]) {
+			trees = trees.concat([{
+				x1: xPos,
+				x2: xPos + (bushWidth * 2)
+			}])
+		}
 		pop();
 	}
 }
@@ -735,12 +781,29 @@ function renderMountains (data) {
 
 // Function to draw the canyons
 function renderCanyons (data) {
+	// Checks to make sure we don't position a canyon under a tree
+	function checkTreePosition (pos, width) {
+		let result;
+		for (let i = 0, x = trees.length; i < x; i++) {
+			if (pos > trees[i].x1 && pos < trees[i].x2) {
+				result = pos + 5;
+				return checkTreePosition(result, width);
+			} else if ((pos + width) > trees[i].x1 && (pos + width) < trees[i].x2) {
+				result = pos - 5;
+				return checkTreePosition(result, width);
+			} else {
+				result = pos;
+			}
+		}
+		return result;
+	}
+
 	for (let i = 0, x = data.length; i < x; i++ ) {
 		push();
 		strokeWeight(0);
-		fill(160, 183, 191);
-		const xPos = data[i].x + 2; // Adjust for stroke
+		fill(...canyonColor);
 		const width = data[i].width > 200 ? 200 : data[i].width;
+		const xPos = checkTreePosition(data[i].x + 2, width); // Adjust for stroke
 		// The drop
 		rect(xPos, horizon, width, height - horizon);
 		// Left hand border
@@ -764,8 +827,8 @@ function renderCanyons (data) {
 		canyons = canyons || [];
 		if (!canyons[i]) {
 			canyons = canyons.concat([{
-				x1: data[i].x + 20,
-				x2: data[i].x + data[i].width - 20
+				x1: (xPos - 2) + 20,
+				x2: (xPos - 2) + (width - 20)
 			}])
 		}
 		pop();
