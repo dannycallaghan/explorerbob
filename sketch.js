@@ -1,14 +1,23 @@
-// Game frame rate (used for Bob's legs moving)
+// Game frame rate (used for Bob's legs moving and jumper flashing when he finds something) 
 let personalFrameRate = 10;
 let personalFrameRateCount = 1;
+let frameCount = 0;
+
+// Game settings
+const gameWorldSize = 5000;
+const gameWorldOffsetLeft = -500;
+
+// Scrolling speeds
+const scrollSpeedClouds = 0.2;
+const scrollSpeedTwo = 2;
+const scrollSpeedThree = 3;
+const scrollSpeedFour = 5;
 
 // Horizon
 const horizon = 432;
 
 // Font
-let font;
-let textStartX;
-let textStartY;
+let fontFile = 'arcadeclassic.ttf'; 
 
 // Interactions vars
 let isGameStarted = false;
@@ -21,51 +30,34 @@ let isJumping = false;
 let isFound = false;
 
 // Speeds 
-let runningSpeed = 4;
-let jumpingSpeed = 10;
+let runningSpeed = 6;
+let jumpingSpeed = 8;
 let fallingSpeed = 5;
 
 // Jumping height
-let maxJumpHeight = 190;
+let maxJumpHeight = 120;
 
 // Character
-let gameCharStart_x = -500;
-let gameCharacterOffSet = 22;
-let gameChar_x;
-let gameChar_y;
+let gameCharStartX = -500;
+let gameCharX;
+let gameCharXInWorld;
+let gameCharY = horizon;
 let state = '';
-let primaryColor;
-let skinColor;
-let secondaryColor;
-let logoColor;
-let strokeColor;
-let trouserColor;
+const gameCharacterWidth = 44;
+const gameCharacterHeight = 65;
+const gameCharXOffsetR = 40;
+const gameCharXOffsetL = 4;
+let diePosX = null;
 
 // Keeps the amount of time Bob's shirt has 'flashed'
 let flashed = 0;
 
 // Canyon
-let canyon;
-let spikeHeight;
+let canyonSpikeHeight;
+let canyons;
 
-// Tree
-let treePos_x;
-let treePos_y;
-
-// Collectable
-let collectable;
-
-// Cloud
-let cloud_1;
-let cloud_2;
-
-// Mountain
-let mountain;
-
-// Generic stroke width
-const strokeWidth = 2;
-// Grass effect
-let grassStartPos = 0;
+// Collectables position and status
+let collectables;
 
 // Colors
 const treeColor = [87, 221, 111]; // Tree/bushes
@@ -75,327 +67,372 @@ const skyColor = [179, 232, 248]; // Sky color
 const grassColor = treeColor; // Grass color
 const earthColor = [202, 121, 37]; // Earth color
 const mountainColor = [183, 209, 216] // Mountain color
+const mountainSnowColor = [220, 232, 234] // Mountain snow color
+
+// Character colors
+let primaryColor = [223, 39, 59];
+let skinColor = [228, 198, 128];
+let secondaryColor = [68, 121, 187];
+let logoColor = [255, 255, 255];
+let strokeColor = [0, 0, 0];
+let trouserColor = [95, 53, 48];
+let eyeColor = [34,139,34];
+
+// Scroll vars
+let scrollPos = [];
 
 function preload () {
-	font = loadFont('arcadeclassic.ttf');
+	font = loadFont(fontFile);
 }
 
 function setup () {
-
-	// Character colors
-	primaryColor = color(223, 39, 59);
-	skinColor = color(228, 198, 128);
-	secondaryColor = color(68, 121, 187);
-	logoColor = color(255, 255, 255);
-	strokeColor = color(0, 0, 0);
-	trouserColor = color(95, 53, 48);
-
 	// Game character.
-	gameChar_x = gameCharStart_x;
-	gameChar_y = horizon
-
-	// Tree.
-	treePos_x = 200;
-	treePos_y = horizon;
-
-	// Canyon.
-	canyon = {
-		x_pos: 500,
-		width: 200
-	};
-
-	// Collectable.
-	collectable = {
-		x_pos: 860,
-		y_pos: 394,
-		size: 50
-	};
-
-	// Cloud.
-	cloud_1 = {
-		x_pos: 140,
-		y_pos: 160,
-		size: 50,
-		color: [255, 255, 255]
-	};
-
-	// Cloud.
-	cloud_2 = {
-		x_pos: 40,
-		y_pos: 40,
-		size: 10,
-		color: [255, 255, 255]
-	};
-
-	// Mountain.
-	mountain = {
-		x_pos: 250,
-		y_pos: horizon,
-		size: 50
-	};
+	gameCharX = gameCharStartX;
 
 	createCanvas(1024, 576);
 }
 
-let frameCount = 0;
 
 function draw () {
 
-	frameRate(120);
+	// if (gameCharXInWorld) {
+	// 	console.warn(gameCharXInWorld);
+	// }
 
-	// Set our own framerate;
+	// Set a personal frame rate (half the game frame rate)
+	// so we can do things slow enough to be visible
+	// like Bob's leg's moving and his jumper flashing
 	frameCount++;
 	if (frameCount % personalFrameRate === 0) {
 		frameCount = 0;
 		personalFrameRateCount++;
 	}
 
-	// Sky
-	background(...skyColor);
+	/** Interactions: */
 
-	// Earth
-	noStroke();
-	fill(...earthColor);
-	rect(0, horizon, width, 150); 
-
-	// Grass
-	noStroke();
-	fill(...grassColor);
-	rect(0, horizon, width, 20);
-	stroke(0);
-	strokeWeight(strokeWidth);
-	fill(...grassColor);
-	for (let grassStartPos = 0; grassStartPos < width; grassStartPos = grassStartPos + 36) {
-		bezier(grassStartPos, horizon + 20, grassStartPos + 20, horizon + 40, grassStartPos + 40, horizon + 40, grassStartPos + 60, horizon + 20);
-		grassStartPos = grassStartPos + 60;
-		bezier(grassStartPos, horizon + 20, grassStartPos + 12, horizon + 35, grassStartPos + 24, horizon + 35, grassStartPos + 36, horizon + 20);
-	}
-	
-	// Mountains
-	renderMountain({
-		xPos: mountain.x_pos,
-		yPos: mountain.y_pos,
-		size: mountain.size
-	});
-
-	// Cloud 1
-	if (cloud_1.x_pos > width + cloud_1.size) {
-		cloud_1.x_pos = -3 * cloud_1.size;
-	}
-	renderCloud({
-		xPos: cloud_1.x_pos++,
-		yPos: cloud_1.y_pos,
-		size: cloud_1.size,
-		color: [255, 255, 255]
-	});
-
-	// Cloud 2
-	if (cloud_2.x_pos > width + cloud_2.size) {
-		cloud_2.x_pos = -3 * cloud_2.size;
-	}
-	renderCloud({
-		xPos: cloud_2.x_pos = cloud_2.x_pos + 0.5,
-		yPos: cloud_2.y_pos,
-		size: cloud_2.size,
-		color: [219, 247, 249]
-	});
-
-	// Trees
-	renderBushes({
-		xPos: treePos_x,
-		yPos: treePos_y,
-		totalBushWidth: 300,
-		curveHeight: 50,
-		strokeWidth: strokeWidth,
-		bushes: [
-		  {
-			height: 80,
-			lineHeight: 0
-		  },
-		  {
-			height: 150,
-			lineHeight: 75
-		  },
-		  {
-			height: 100,
-		  }
-		]
-	});
-	
-	// The 'floor'
-	stroke(0);
-	strokeWeight(strokeWidth);
-	line(0, horizon + 1, width, horizon + 1);
-
-	// Canyon
-	renderCanyon({
-		xPos: canyon.x_pos,
-		width: canyon.width
-	});
-
-	// Collectable/star
-	if (!isFound) {
-		renderCollectable({
-			xPos: collectable.x_pos,
-			yPos: collectable.y_pos,
-			size: collectable.size
-		});
+	// Make Bob walk right
+	if (isRight && !isJumping) {
+		state = 'walk-r';
+		walk();
 	}
 
-	// Bob	
-	renderCharacter(gameChar_x, gameChar_y, state);
-
-	// Make Bob fall
-	if (isFalling) {
-		if (gameChar_y < horizon) {
-			gameChar_y += fallingSpeed;
-		} else {
-			isFalling = false;
-			if (state.match('-r')) {
-				state = 'walk-r';
-				return;
-			}
-			if (state.match('-l')) {
-				state = 'walk-l';
-				return;
-			}
-			state = '';
-		}
+	// Make Bob walk left
+	if (isLeft && !isJumping) {
+		state = 'walk-l';
+		walk();
 	}
 
 	// Make Bob jump
 	if (isJumping) {
-		if (gameChar_y > horizon - maxJumpHeight) {
-			gameChar_y -= jumpingSpeed;
-		} else {
-			isJumping = false;
-			isFalling = true;
-		}
-		if (isRight && gameChar_x <= width - gameCharacterOffSet) {
-			gameChar_x += runningSpeed;
-			state = 'jump-r';
-			return;
-		}
-		if (isLeft && gameChar_x >= gameCharacterOffSet) {
-			gameChar_x -= runningSpeed;
-			state = 'jump-l';
-			return;
-		}
-		state = 'jump';
+		jump();
 	}
 
-	// Make Bob walk right {
-	if (isRight && gameChar_x < width - gameCharacterOffSet) {
-		state = 'walk-r';
-		gameChar_x += runningSpeed;
-	}
-
-	// Make Bob walk left {
-	if (isLeft && gameChar_x > gameCharacterOffSet) {
-		state = 'walk-l';
-		gameChar_x -= runningSpeed;
+	// Make Bob fall
+	if (isFalling) {
+		fall();
 	}
 
 	// Make Bob die
-	if (
-		(gameChar_x >= canyon.x_pos + (gameCharacterOffSet - 12))
-		&&
-		(gameChar_x <= ((canyon.x_pos + canyon.width) - (gameCharacterOffSet - 14)))
-		&&
-		(!isJumping && !isFalling)
-	) {
-		isPlummeting = true;
-		if (gameChar_x <= canyon.x_pos + 24) {
-			gameChar_x = canyon.x_pos + 24;
-		}
-		if (state.match('-l')) {
-			state = 'jump-l';
-		}
-		if (state.match('-r')) {
-			state = 'jump-r';
-		}
-		if (!isGameOver && gameChar_y < spikeHeight) {
-			console.warn(3);
-			gameChar_y += fallingSpeed;
-		} else {
-			state = '';
-			isGameOver = true;
-			isGameStarted = false;
-			isRight = false;
-			isLeft = false;
-			isJumping = false;
-			isFalling = false;
-			isPlummeting = false;
-			gameChar_y = gameChar_y - 5;
-			gameChar_x = gameChar_x;
-		}
+	if (canyons && canyons.length) {
+		die();
 	}
 
 	// Make Bob get a collectable
-	if (
-		gameChar_x > (collectable.x_pos - (collectable.size / 2))
-		&&
-		gameChar_x < (collectable.x_pos + (collectable.size + collectable.size / 2))
-	) {
-		isFound = true;
+	if (collectables && collectables.length) {
+		grabCollectables();
 	}
 
-	// Game text
-	textStartX = width / 2;
-	textStartY = !isGameStarted && !isGameOver ? height / 2 - 50 : -2000;
+	// Draw the sky
+	push();
+	background(...skyColor);
+	pop();
 
-	textGameOverX = width / 2;
-	textGameOverY = isGameOver && !isGameStarted ? height / 2 - 50 : -2000;
+	// Draw the earth
+	push();
+	fill(...earthColor);
+	rect(gameWorldOffsetLeft, horizon, gameWorldSize, 150); 
+	pop();
+	
+	// Initialise first scrolling effect
+	scrollStart(scrollSpeedClouds);
 
-	textRestartX = width / 2;
-	textRestartY = isGameOver  && !isGameStarted ? height / 2 : -2000;
+	// Draw the clouds
+	renderClouds([
+		{ x: 140, y: 160, size: 50 },
+		{ x: 40, y: 40, size: 10, color: [219, 247, 249] }
+	]);
+	
+	// Stop first scrolling effect
+	scrollStop();
+
+	// Initialise second scrolling effect
+	scrollStart(scrollSpeedTwo);
+
+	// Draw the mountains
+	renderMountains([
+		{ x: 550, size: 50 },
+		{ x: 50, size: 30 }
+	]);
+
+	// Stop second scrolling effect
+	scrollStop();
+
+	// Initialise third scrolling effect
+	scrollStart(scrollSpeedThree);
+
+	// Draw the trees
+	renderTrees([
+		{ x: 10, bushes: [ { height: 80, rightSideHeight: 0 }, { height: 150, rightSideHeight: 75 }, { height: 100 } ] },
+		{ x: 720, bushes: [ { height: 60, rightSideHeight: 0 }, { height: 100, rightSideHeight: 50 }, { height: 60 } ] }
+	]);
+
+	// Stop third scrolling effect
+	scrollStop();
+
+	// Initialise fourth scrolling effect
+	scrollStart(scrollSpeedFour);
+
+	// Draw the grass effect
+	renderGrass();
+
+	// The 'floor'
+	push();
+	stroke(0);
+	strokeWeight(2);
+	line(gameWorldOffsetLeft, horizon + 1, gameWorldSize, horizon + 1);
+	pop();
+
+	// Draw the canyon
+	renderCanyons([
+		{ x: 200, width: 100 },
+		{ x: 600, width: 200 }
+	]);
+
+	// Draw the collectables
+	renderCollectables([
+		{ x: 100, y: 394, size: 50, found: false },
+		{ x: 800, y: 294, size: 50, found: true }
+	]);
+
+	// Stop fourth scrolling effect
+	scrollStop();
+
+	// Draw Bob	
+	renderCharacter(gameCharX, gameCharY, state);
+
+	// Get a hold of Bobs position *in the world*
+	gameCharXInWorld = gameCharX - scrollPos[scrollPos.length - 1];
+
+	// Draw the game text
+	renderGameText();
+
+}
+
+// Scroll start function
+function scrollStart (speed) {
+	if (!scrollPos[speed]) {
+		scrollPos[speed] = 0;
+	}
+	if (gameCharX < width * 0.2 && isLeft) {
+		console.warn(scrollPos[speed], gameWorldOffsetLeft);
+		if (-Math.abs(scrollPos[speed]) >= gameWorldOffsetLeft + 1) {
+			scrollPos[speed] += speed;
+		}
+	}
+	if (gameCharX > width * 0.8 && isRight) {
+		scrollPos[speed] -= speed;
+	}
+	if (speed < 1) {
+		scrollPos[speed] += speed;
+	}
+	push();
+	translate(scrollPos[speed], 0);
+}
+
+// Scroll stop (just returns pop)
+function scrollStop () {
+	return pop();
+}
+
+// Function to make Bob walk
+function walk () {
+	const speed = isFalling ? fallingSpeed : runningSpeed;
+	if (state.match(/-r/)) {
+		if(gameCharX < width * 0.8) {
+			gameCharX += speed;
+		}
+		return;
+	}
+	if (state.match(/-l/)) {
+		if (gameCharX > width * 0.2) {
+			gameCharX -= speed;
+		}
+		return;
+	}
+}
+
+// Function to make Bob jump
+function jump () {
+	if (gameCharY > horizon - maxJumpHeight) {
+		gameCharY -= jumpingSpeed;
+		state = 'jump';
+	} else {
+		isJumping = false;
+		isFalling = true;
+	}
+	if (isRight && gameCharX + gameCharXOffsetR < width) {
+		gameCharX += runningSpeed;
+		state = 'jump-r';
+		return;
+	}
+	if (isLeft && gameCharX + gameCharXOffsetL > 0) {
+		gameCharX -= runningSpeed;
+		state = 'jump-l';
+		return;
+	}
+}
+
+// Function to make Bob fall
+function fall () {
+	if (gameCharY < horizon) {
+		gameCharY += fallingSpeed;
+	} else {
+		isFalling = false;
+		gameCharY = horizon;
+		if (state.match('-r')) {
+			state = 'walk-r';
+			return;
+		}
+		if (state.match('-l')) {
+			state = 'walk-l';
+			return;
+		}
+		state = '';
+	}
+}
+
+// Function to call when Bob gets a collectable
+function grabCollectables () {
+	collectables.map(collectable => {
+		if (!collectable.found) {
+			if (
+				( gameCharXInWorld + gameCharXOffsetR > collectable.x1 && gameCharXInWorld < collectable.x2 )
+				&&
+				( gameCharY - gameCharacterHeight < collectable.y2 )
+				&&
+				( gameCharY > collectable.y1 )
+			) {
+				collectable.found = true;
+				flashed = 0;
+				isFound = true;
+			}
+		}
+	})
+}
+
+// Function to draw the instructional game text
+function renderGameText () {
+	push();
 
 	fill(255, 255, 0);
 	textFont(font);
+
+	// Start text
+	const textStartX = width / 2;
+	const textStartY = !isGameStarted && !isGameOver ? height / 2 - 50 : -2000;
 	textSize(80);
 	textAlign(CENTER);
 	text('PRESS ANY KEY TO START', textStartX, textStartY);
 
+	// Game over text
+	const textGameOverX = width / 2;
+	const textGameOverY = isGameOver && !isGameStarted ? height / 2 - 50 : -2000;
 	text('GAME OVER', textGameOverX, textGameOverY);
 
+	// Restart text
+	const textRestartX = width / 2;
+	const textRestartY = isGameOver  && !isGameStarted ? height / 2 : -2000;
 	textSize(50);
 	text('PRESS ANY KEY TO RESTART', textRestartX, textRestartY);
 
+	pop();
+}
+
+// Function to make Bob die
+function die () {
+	canyons.map(canyon => {
+		//if (gameCharX + gameCharXOffsetR > canyon.x1 && gameCharX < canyon.x2 && (!isJumping && !isFalling)) {
+		if (gameCharXInWorld + gameCharXOffsetR > canyon.x1 && gameCharXInWorld < canyon.x2 && (!isJumping && !isFalling)) {
+			isPlummeting = true;
+
+			if (!diePosX) {
+				diePosX = gameCharX;
+			}
+
+			gameCharX = diePosX;
+			//gameCharXInWorld = gameCharX + scrollPos;
+
+			if (state.match('-l')) {
+				state = 'jump-l';
+				//gameCharX = constrain(gameCharX, canyon.x1 - 22, canyon.x2 + 50);
+			}
+			if (state.match('-r')) {
+				state = 'jump-r';
+				//gameCharX = constrain(gameCharX, canyon.x1 - 50, canyon.x2 - 18);
+			}
+			if (!isGameOver && gameCharY < canyonSpikeHeight) {
+				gameCharY += fallingSpeed;
+
+				//gameCharX = constrain(gameCharX, canyon.x1 - 18, canyon.x2 - 22);
+			} else {
+				state = '';
+				//gameCharX = constrain(gameCharX, canyon.x1 - 18, canyon.x2 - 22);
+				isGameOver = true;
+				isGameStarted = false;
+				isRight = false;
+				isLeft = false;
+				isJumping = false;
+				isFalling = false;
+				isPlummeting = false;
+				gameCharY = gameCharY - 5;
+			}
+		}
+	});
 }
 
 // Function to drawer the character
-function renderCharacter (x, y, _state) {
+function renderCharacter (_x, y, _state) {
+	const gameCharacterBodyWidth = 26;
 	let state = _state || '';
-	const gameCharacterWidth = 26;
-	const gameCharacterStrokeWidth = 2;
-
+	let x = _x + 22;
+	
 	if (isGameOver) {
-		primaryColor = color(255);
-		skinColor = color(249, 240, 220);
-		secondaryColor = color(255);
-		logoColor = color(100, 100, 100);
-		trouserColor = color(255);
+		primaryColor = [255, 255, 255];
+		skinColor = [249, 240, 220];
+		secondaryColor = [255, 255, 255];
+		logoColor = [100, 100, 100];
+		trouserColor = [255, 255, 255];
 	}
 
 	// Hat
-	var hatYPos = y - 65;
+	var hatYPos = y - gameCharacterHeight;
 	if (state.match(/jump/)) {
-		hatYPos = y - 70;
+		hatYPos = y - (gameCharacterHeight + 5);
 	}
-	strokeWeight(gameCharacterStrokeWidth);
+	push();
+	strokeWeight(2);
+	stroke(...strokeColor);
 
-	fill(primaryColor);
-	rect(x - (gameCharacterWidth / 2), hatYPos, gameCharacterWidth, 5);
+	fill(...primaryColor);
+	rect(x - (gameCharacterBodyWidth / 2), hatYPos, gameCharacterBodyWidth, 5);
 
 	// Head
-	fill(skinColor);
-	rect(x - (gameCharacterWidth / 2), y - 60, gameCharacterWidth, 25);
+	fill(...skinColor);
+	rect(x - (gameCharacterBodyWidth / 2), y - 60, gameCharacterBodyWidth, 25);
 
 	// Body
 	if (isFound && flashed < 40) {
-		console.warn('1');
 		if (personalFrameRateCount % 2 === 0) {
-			console.warn('flashing');
 			fill(255, 255, 0);
 			flashed++;
 		} else {
@@ -404,25 +441,26 @@ function renderCharacter (x, y, _state) {
 	} else {
 		fill(primaryColor);
 	}
-	rect(x - (gameCharacterWidth / 2), y - 35, gameCharacterWidth, 20);
-	textSize(20);
+
+	rect(x - (gameCharacterBodyWidth / 2), y - 35, gameCharacterBodyWidth, 20);
+	textSize(19);
 	textStyle(BOLD);
-	fill(logoColor);
-	let jumperOffset = 6;
+	fill(...logoColor);
+	let jumperOffset = 0;
 	if (state.match(/-l/)) {
-		jumperOffset = 2;
+		jumperOffset = -11;
 	}
 	if (state.match(/-r/)) {
 		jumperOffset = 11;
 	}
-	text('B', (x - (gameCharacterWidth / 2)) + 6 + jumperOffset, y - 19);
+	text('B', (x - (gameCharacterBodyWidth / 2)) + 6 + jumperOffset, y - 18);
 
 	// Legs
 	var legYPos = y - 15;
-	var legXPosR = x + ((gameCharacterWidth / 2) - 10);
-	var legXPosL = x - (gameCharacterWidth / 2);
-	var legHeighL = 15;
-	var legHeighR = 15;
+	var legXPosR = x + ((gameCharacterBodyWidth / 2) - 10);
+	var legXPosL = x - (gameCharacterBodyWidth / 2);
+	var legHeighL = 14;
+	var legHeighR = 14;
 	if (state.match('jump')) {
 		legYPos = y - 25;
 	}
@@ -430,70 +468,70 @@ function renderCharacter (x, y, _state) {
 	if (state.match('-l')) {
 		legXPosR = legXPosR - 4;
 		if (personalFrameRateCount % 2 === 0) {
-			legHeighL = 15;
+			legHeighL = 14;
 			legHeighR = 10;
 		} else {
-			legHeighR = 15;
+			legHeighR = 14;
 			legHeighL = 10;
 		}
 	}
 	if (state.match('-r')) {
 		legXPosL = legXPosL + 4;
 		if (personalFrameRateCount % 2 === 0) {
-			legHeighL = 15;
+			legHeighL = 14;
 			legHeighR = 10;
 		} else {
-			legHeighR = 15;
+			legHeighR = 14;
 			legHeighL = 10;
 		}
 	}
 	
 	// Left leg
-	fill(trouserColor);
+	fill(...trouserColor);
 	rect(legXPosL, legYPos, 10, legHeighL);
 
 	// Right leg
-	fill(trouserColor);
+	fill(...trouserColor);
 	rect(legXPosR, legYPos, 10, legHeighR);
 
 	// Arms
 	var armYPos = y - 38;
 	var armWidthL = 8;
 	var armWidthR = 8;
-	var armXPosR = x + (gameCharacterWidth / 2);
-	var armXPosL = x - (gameCharacterWidth / 2) - armWidthL;
+	var armXPosR = x + (gameCharacterBodyWidth / 2);
+	var armXPosL = x - (gameCharacterBodyWidth / 2) - armWidthL;
 	if (state.match('jump')) {
 		armYPos = y - 42;
 	}
 	if (state.match('-l')) {
 		armWidthL = 4;
-		armXPosL = x - (gameCharacterWidth / 2) - armWidthL;
-		armXPosR = x + ((gameCharacterWidth / 2) - 18);
+		armXPosL = x - (gameCharacterBodyWidth / 2) - armWidthL;
+		armXPosR = x + ((gameCharacterBodyWidth / 2) - 18);
 	}
 	if (state.match('-r')) {
 		armWidthR = 4;
-		armXPosL = x - (gameCharacterWidth / 2) + 10;
-		armXPosR = x + (gameCharacterWidth / 2);
+		armXPosL = x - (gameCharacterBodyWidth / 2) + 10;
+		armXPosR = x + (gameCharacterBodyWidth / 2);
 	}
 
 	// Left arm
-	fill(secondaryColor);
+	fill(...secondaryColor);
 	rect(armXPosL, armYPos, armWidthL, 20);
 
 	// Right arm
-	fill(secondaryColor);
+	fill(...secondaryColor);
 	rect(armXPosR, armYPos, armWidthR, 20);
 
 	// Eyes
-	let eyeXPosL = x - (gameCharacterWidth / 2) + 6;
+	let eyeXPosL = x - (gameCharacterBodyWidth / 2) + 6;
 	let pupilXPosL = eyeXPosL + 2;
 	
 	if (state.match('-l')) {
-		eyeXPosL = x - (gameCharacterWidth / 2) + 2;
+		eyeXPosL = x - (gameCharacterBodyWidth / 2) + 2;
 		pupilXPosL = eyeXPosL + 1;
 	}
 	if (state.match('-r')) {
-		eyeXPosL = x + (gameCharacterWidth / 2) - 16;
+		eyeXPosL = x + (gameCharacterBodyWidth / 2) - 16;
 		pupilXPosL = eyeXPosL + 3;
 	}
 
@@ -503,21 +541,21 @@ function renderCharacter (x, y, _state) {
 	}
 
 	// Left eye
-	stroke(strokeColor);
+	stroke(...strokeColor);
 	strokeWeight(1);
 	fill(255);
 	rect(eyeXPosL, y - 55, 5, 5);
 	noStroke();
-	fill(34,139,34);
+	fill(...eyeColor);
 	rect(pupilXPosL, pupilYPos, 2, 2);
 
 	// Right eye
-	stroke(strokeColor);
+	stroke(...strokeColor);
 	strokeWeight(1);
 	fill(255);
 	rect(eyeXPosL + 8, y - 55, 5, 5);
 	noStroke();
-	fill(34,139,34);
+	fill(...eyeColor);
 	rect(pupilXPosL + 8, pupilYPos, 2, 2);
 
 	// Mouth
@@ -537,11 +575,11 @@ function renderCharacter (x, y, _state) {
 			jumpXPosDiff = 22;
 			jumpYPosDiff = 44;
 		}
-		fill(strokeColor);
+		fill(...strokeColor);
 		noStroke(0);
-		ellipse(x + (gameCharacterWidth / 2) - jumpXPosDiff, y - jumpYPosDiff, jumpWidth, jumpHeight);
+		ellipse(x + (gameCharacterBodyWidth / 2) - jumpXPosDiff, y - jumpYPosDiff, jumpWidth, jumpHeight);
 	} else {
-		stroke(strokeColor);
+		stroke(...strokeColor);
 		strokeWeight(1);
 		noFill();
 		let mouthPosLOffset = 6;
@@ -556,170 +594,229 @@ function renderCharacter (x, y, _state) {
 		const mouthPosYOffSet = isGameOver ? 4 : 0;
 
 		bezier(
-			x - (gameCharacterWidth / 2) + mouthPosLOffset,
+			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset,
 			y - (45 - mouthPosYOffSet),
 			
-			x - (gameCharacterWidth / 2) + mouthPosLOffset + 2,
+			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset + 2,
 			(y - (45 - mouthPosYOffSet)) + mouthOffSet,
 
-			x - (gameCharacterWidth / 2) + mouthPosLOffset + 14,
+			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset + 14,
 			(y - (45 - mouthPosYOffSet)) + mouthOffSet,
 
-			x - (gameCharacterWidth / 2) + mouthPosLOffset + 15,
+			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset + 15,
 			y - (45 - mouthPosYOffSet)
 		);
 	}
-	
-}
-
-// Function to draw the tree/bushes
-function renderBushes (config) {
-	var bushWidth = config.totalBushWidth / config.bushes.length;
-	var halfBush = bushWidth / 2;
-	var quarterBush = halfBush / 2;
-  
-	for (let i = config.bushes.length - 1; i >= 0; i--) {
-		fill(...treeColor);
-		stroke(...treeBorderColor);
-		strokeWeight(config.strokeWidth);
-		// Curve at the top
-		bezier(
-		  (i * halfBush) + (config.xPos + bushWidth), config.yPos - config.bushes[i].height,
-		  (i * halfBush) + (config.xPos + (quarterBush * 3)), (config.yPos - config.bushes[i].height) - config.curveHeight,
-		  (i * halfBush) + (config.xPos + quarterBush), (config.yPos - config.bushes[i].height) - config.curveHeight,
-		  (i * halfBush) + config.xPos, config.yPos - config.bushes[i].height
-		);
-		// Background
-		noStroke();
-		fill(...treeColor);
-		rect(
-		  (i * halfBush) + config.xPos,
-		  config.yPos - config.bushes[i].height,
-		  bushWidth,
-		  config.bushes[i].height);
-		// Left hand line
-		stroke(...treeBorderColor);
-		strokeWeight(config.strokeWidth);
-		line(
-		  (i * halfBush) + config.xPos,
-		  config.yPos - config.bushes[i].height,
-		  (i * halfBush) + config.xPos,
-		  config.yPos - (config.strokeWidth - 1)
-		);
-		// Right hand line
-		const _lineHeight = config.bushes[i].lineHeight === undefined ? config.bushes[i].height : config.bushes[i].lineHeight;
-		line(
-			(i * halfBush) + (config.xPos + bushWidth),
-		  	config.yPos - config.bushes[i].height,
-		  	(i * halfBush) + (config.xPos + bushWidth),
-		  	(((config.yPos - config.bushes[i].height) + _lineHeight) - (config.strokeWidth - 1))
-			);
-	}
-
-	for (let i = config.bushes.length - 1; i >= 0; i--) {
-		fill(...treeTrunkColor);
-		rect((i * halfBush) + config.xPos + ((bushWidth - (bushWidth / 4)) / 2), config.yPos - (config.bushes[i].height / 4) + 1, bushWidth / 4, config.bushes[i].height / 4);
-		line((i * halfBush) + config.xPos + ((bushWidth - (bushWidth / 4)) / 2) - (bushWidth / 15), config.yPos - (config.bushes[i].height / 4) + 1, ((i * halfBush) + config.xPos + ((bushWidth - (bushWidth / 4)) / 2) - 5) + (bushWidth / 4) + ((bushWidth / 15) * 2), config.yPos - (config.bushes[i].height / 4) + 1);
-	}
-}
-
-// Function to draw a cloud
-function renderCloud (config) {
-	const size = config.size || 50;
-	const xPos = config.xPos || 140;
-	const yPos = config.yPos || 150;
-	const color = config.color || [255, 255, 255];
-	const largeCloud = size * 2;
-	const smallCloud = ((largeCloud / 100) * 70);
-
-	noStroke();
-	fill(...color);
-	// Left circle
-	ellipse(xPos, yPos + ((largeCloud / 100) * 10), smallCloud, smallCloud);
-	// Centre circle
-	ellipse(xPos + ((largeCloud / 100) * 60), yPos, largeCloud, largeCloud);
-	// Right circle
-	ellipse(xPos + (((largeCloud / 100) * 60) * 2), yPos + ((largeCloud / 100) * 10), smallCloud, smallCloud);
-}
-
-// Function to draw the mountains
-function renderMountain (config) {
-	const size = config.size || 50;
-	const xPos = config.xPos || 200;
-	const xPos2 = xPos + (size * 2.8);
-	const yPos = config.yPos || horizon;
-	const firstPeak = size * 3.5;
-	const secondPeak = size * 2.8;
-
-	fill(...mountainColor);
-	stroke(...mountainColor);
-	
-	triangle(xPos, yPos, firstPeak + xPos, yPos - firstPeak, (firstPeak * 2)  + xPos, yPos);
-	triangle(xPos2, yPos, secondPeak + xPos2, yPos - secondPeak, (secondPeak * 2)  + xPos2, yPos);
-}
-
-// Function to render a canyon
-function renderCanyon (config) {
-	const xPos = config.xPos || 100;
-	const width = config.width || 200;
-
-	strokeWeight(0);
-	fill(...mountainColor);
-	// The drop
-	rect(xPos, horizon, width, height - horizon);
-	// Left hand border
-	strokeWeight(strokeWidth);
-	line(xPos, horizon + (strokeWidth - 1), xPos, height);
-	// Right hand border
-	line(xPos + width, horizon + (strokeWidth - 1), xPos + width, height);
-	// Spikes
-	fill(255);
-	const spikeSize = ((width / 100) * 10) > 10 ? 10 : (width / 100) * 10;
-	if (spikeSize > 3) {
-		let spikeNum = 0;
-		for (let i = 0; i < width - spikeSize; i = i + (spikeSize * 2)) {
-			let _xPos = xPos + ((spikeSize * spikeNum) * 2);
-			spikeHeight = height - (3 * spikeSize);
-			triangle(_xPos, height - strokeWidth, _xPos + spikeSize, spikeHeight, _xPos + (2 * spikeSize), height - strokeWidth);
-			spikeNum++;
-		}
-	}
-}
-
-// Function to render a collectable star
-function renderCollectable (config) {
-	const xPos = config.xPos !== undefined ? config.xPos : 100;
-	const yPos = config.yPos !== undefined ? config.yPos : 100;
-	
-	const size = config.size !== undefined ? config.size : 20;
-	const ratio = size <= 25 ? 1 : size / 25;
-
-	stroke(0);
-	strokeWeight(strokeWidth);
-	fill(255, 255, 0);
-
-	push();
-	beginShape();
-	vertex(xPos, yPos); // Point 1
-	vertex(xPos + ratio * 10, yPos); // 2
-	vertex(xPos + ratio * 14, yPos - 9 * ratio); // 3
-	vertex(xPos + ratio * 17, yPos); // 4
-	vertex(xPos + ratio * 27, yPos); // 5
-	vertex(xPos + ratio * 19, yPos + ratio * 7); // 6
-	vertex(xPos + ratio * 23, yPos + ratio * 16); // 7
-	vertex(xPos + ratio * 14, yPos + ratio * 11); // 8
-	vertex(xPos + ratio * 5, yPos + ratio * 16); // 9
-	vertex(xPos + ratio * 8, yPos + ratio * 7); // 10
-	endShape(CLOSE);
 	pop();
 }
 
-// Events
-function mousePressed () {
-	startGame();
+// Function to draw the grass effect
+function renderGrass (data) {
+	const yPos = (data && data.y) || horizon;
+	push();
+	fill(...grassColor);
+	rect(gameWorldOffsetLeft, yPos, gameWorldSize, 20);
+	stroke(0);
+	strokeWeight(2);
+	fill(...grassColor);
+	for (let grassStartPos = gameWorldOffsetLeft; grassStartPos < gameWorldSize; grassStartPos = grassStartPos + 36) {
+		bezier(grassStartPos, yPos + 20, grassStartPos + 20, yPos + 40, grassStartPos + 40, yPos + 40, grassStartPos + 60, yPos + 20);
+		grassStartPos = grassStartPos + 60;
+		bezier(grassStartPos, yPos + 20, grassStartPos + 12, yPos + 35, grassStartPos + 24, yPos + 35, grassStartPos + 36, yPos + 20);
+	}
+	pop();
 }
 
+// Function to draw the trees
+function renderTrees (data) {
+	const bushWidth = 100;
+	const halfBush = bushWidth / 2;
+	const quarterBush = halfBush / 2;
+	const curveHeight = 50;
+	for (let i = 0, x = data.length; i < x; i++ ) {
+		push();
+		fill(...treeColor);
+		stroke(...treeBorderColor);
+		strokeWeight(2);
+		const xPos = data[i].x + 1; // Adjust for stroke
+		const yPos = data[i].y || horizon;
+		const bushes = data[i].bushes;
+		for (let b = bushes.length - 1; b >= 0; b--) {
+			// Curve at the top
+			bezier(
+			  (b * halfBush) + (xPos + bushWidth), yPos - bushes[b].height,
+			  (b * halfBush) + (xPos + (quarterBush * 3)), (yPos - bushes[b].height) - curveHeight,
+			  (b * halfBush) + (xPos + quarterBush), (yPos - bushes[b].height) - curveHeight,
+			  (b * halfBush) + xPos, yPos - bushes[b].height
+			);
+			// Background
+			noStroke();
+			fill(...treeColor);
+			rect(
+			  (b * halfBush) + xPos,
+			  yPos - bushes[b].height,
+			  bushWidth,
+			  bushes[b].height);
+			// Left hand line
+			stroke(...treeBorderColor);
+			strokeWeight(2);
+			line(
+			  (b * halfBush) + xPos,
+			  yPos - bushes[b].height,
+			  (b * halfBush) + xPos,
+			  yPos - 1
+			);
+			// Right hand line
+			const _lineHeight = bushes[b].rightSideHeight === undefined ? bushes[b].height : bushes[b].rightSideHeight;
+			line(
+				(b * halfBush) + (xPos + bushWidth),
+				yPos - bushes[b].height,
+				(b * halfBush) + (xPos + bushWidth),
+				(((yPos - bushes[b].height) + _lineHeight) - 1)
+			);
+		}
+		// Trunks - drawn last so sit above all tress
+		for (let p = bushes.length - 1; p >= 0; p--) {
+			fill(...treeTrunkColor);
+			rect((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2), yPos - (bushes[p].height / 4) + 1, bushWidth / 4, bushes[p].height / 4);
+			line((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2) - (bushWidth / 15), yPos - (bushes[p].height / 4) + 1, ((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2) - 5) + (bushWidth / 4) + ((bushWidth / 15) * 2), yPos - (bushes[p].height / 4) + 1);
+		}
+		pop();
+	}
+}
+
+// Function to draw the clouds
+function renderClouds (data) {
+	const cloudsDistance = 60;
+	for (let i = 0, x = data.length; i < x; i++ ) {
+		const adjustedXPos = data[i].x + (cloudsDistance / 2);
+		const color = data[i].color || [255, 255, 255];
+		const large = data[i].size * 2;
+		const small = ((large / 100) * cloudsDistance);
+		push();
+		noStroke();
+		fill(...color);
+		// Left circle
+		ellipse(adjustedXPos, data[i].y + ((large / 100) * 10), small, small);
+		// Centre circle
+		ellipse(adjustedXPos + ((large / 100) * cloudsDistance), data[i].y, large, large);
+		// Right circle
+		ellipse(adjustedXPos + (((large / 100) * cloudsDistance) * 2), data[i].y + ((large / 100) * 10), small, small);
+		pop();
+	}
+}
+
+// Function to draw the mountains
+function renderMountains (data) {
+	const largeMountainRatio = 3.5;
+	const smallMountainRatio = 2.8;
+	push();
+	noStroke();
+	fill(...mountainColor);
+	for (let i = 0, x = data.length; i < x; i++ ) {
+		const yPos = data[i].y || horizon;
+		const firstMountainRatio = i % 2 ? smallMountainRatio : largeMountainRatio;
+		const secondMountainRatio = i % 2 ? largeMountainRatio : smallMountainRatio;
+		const firstMountainPeak = data[i].size * firstMountainRatio;
+		const secondMountainPeak = data[i].size * secondMountainRatio;
+		const secondMountainXPos = data[i].x + (data[i].size * secondMountainRatio);
+		const snowHeight = 70;
+		
+		fill(...mountainColor);
+		triangle(data[i].x, yPos, firstMountainPeak + data[i].x, yPos - firstMountainPeak, (firstMountainPeak * 2)  + data[i].x, yPos);
+		triangle(secondMountainXPos, yPos, secondMountainPeak + secondMountainXPos, yPos - secondMountainPeak, (secondMountainPeak * 2)  + secondMountainXPos, yPos);
+	
+		fill(...mountainSnowColor);
+		triangle(data[i].x + snowHeight, yPos - snowHeight, firstMountainPeak + data[i].x, yPos - firstMountainPeak, ((firstMountainPeak * 2)  + data[i].x) - snowHeight, yPos - snowHeight);
+		triangle(secondMountainXPos + snowHeight, yPos - snowHeight, secondMountainPeak + secondMountainXPos, yPos - secondMountainPeak, ((secondMountainPeak * 2)  + secondMountainXPos) - snowHeight, yPos - snowHeight);
+	}
+	pop();
+}
+
+// Function to draw the canyons
+function renderCanyons (data) {
+	for (let i = 0, x = data.length; i < x; i++ ) {
+		push();
+		strokeWeight(0);
+		fill(160, 183, 191);
+		const xPos = data[i].x + 2; // Adjust for stroke
+		const width = data[i].width > 200 ? 200 : data[i].width;
+		// The drop
+		rect(xPos, horizon, width, height - horizon);
+		// Left hand border
+		strokeWeight(2);
+		line(xPos, horizon + 1, xPos, height);
+		// Right hand border
+		line(xPos + width, horizon + 1, xPos + width, height);
+		// Spikes
+		fill(255);
+		const spikeSize = ((width / 100) * 10) > 10 ? 10 : (width / 100) * 10;
+		if (spikeSize > 3) {
+			let spikeNum = 0;
+			for (let i = 0; i < width - spikeSize; i = i + (spikeSize * 2)) {
+				let _xPos = xPos + ((spikeSize * spikeNum) * 2);
+				canyonSpikeHeight = height - (3 * spikeSize);
+				triangle(_xPos, height - 1, _xPos + spikeSize, canyonSpikeHeight, _xPos + (2 * spikeSize), height - 1);
+				spikeNum++;
+			}
+		}
+		// Add item to canyons array
+		canyons = canyons || [];
+		if (!canyons[i]) {
+			canyons = canyons.concat([{
+				x1: data[i].x + 20,
+				x2: data[i].x + data[i].width - 20
+			}])
+		}
+		pop();
+	}
+}
+
+// Function to draw collectable stars
+function renderCollectables (data) {
+	const sizeRatio = 25;
+	push();
+	stroke(0);
+	strokeWeight(2);
+	fill(255, 255, 0);
+	for (let i = 0, x = data.length; i < x; i++ ) {
+		const xPos = data[i].x + 1; // Adjust for stroke
+		const yPos = data[i].y + 1; // Adjust for stroke
+		const size = data[i].size;
+		const adjustedRatio = data[i].size <= sizeRatio ? 1 : size / sizeRatio;
+		// Add item to collectables array
+		collectables = collectables || [];
+		if (!collectables[i]) {
+			collectables = collectables.concat([{
+				x1: xPos - 1,
+				x2: ((xPos - 1) + (adjustedRatio * 27) + 4),
+				y1: yPos - 10 * adjustedRatio,
+				y2: ((yPos - 10 * adjustedRatio) + (((yPos - (yPos - 9 * adjustedRatio)) + adjustedRatio * 16) + 5)),
+				found: false
+			}])
+		}
+		if (collectables && collectables.length && collectables[i] && collectables[i].found !== true) {
+			beginShape();
+			vertex(xPos, yPos); // Point 1
+			vertex(xPos + adjustedRatio * 10, yPos); // 2
+			vertex(xPos + adjustedRatio * 14, yPos - 9 * adjustedRatio); // 3
+			vertex(xPos + adjustedRatio * 17, yPos); // 4
+			vertex(xPos + adjustedRatio * 27, yPos); // 5
+			vertex(xPos + adjustedRatio * 19, yPos + adjustedRatio * 7); // 6
+			vertex(xPos + adjustedRatio * 23, yPos + adjustedRatio * 16); // 7
+			vertex(xPos + adjustedRatio * 14, yPos + adjustedRatio * 11); // x
+			vertex(xPos + adjustedRatio * 5, yPos + adjustedRatio * 16); // 9
+			vertex(xPos + adjustedRatio * 8, yPos + adjustedRatio * 7); // 10
+			endShape(CLOSE);
+		}
+	}
+	pop();
+}
+
+// Starts/Resets game, resets defaults
 function startGame () {
+
+	// Reset colours
 	primaryColor = [223, 39, 59];
 	skinColor = [228, 198, 128];
 	secondaryColor = [68, 121, 187];
@@ -727,6 +824,7 @@ function startGame () {
 	strokeColor = [0, 0, 0];
 	trouserColor = [95, 53, 48];
 
+	// Reset game vars
 	isGameStarted = true;
 	isGameOver = false;
 	isFalling = false;
@@ -735,12 +833,32 @@ function startGame () {
 	isRight = false;
 	isJumping = false;
 	isFound = false;
-	gameChar_x = 50;
-	gameChar_y = horizon;
+
+	// Reset Bob
+	gameCharX = 50;
+	gameCharY = horizon;
 	state = '';
 	flashed = 0;
+	diePosX = null;
 
-	renderCharacter(gameChar_x, gameChar_y, state);
+	// Get a hold of Bobs position *in the world*
+	gameCharXInWorld = gameCharX - scrollPos[scrollPos.length - 1];
+
+	// Reset collectables
+	collectables = collectables.map(collectable => {
+		collectable.found = false;
+		return collectable;
+	});
+
+	// Reset scroll positions
+	scrollPos = scrollPos.map(pos => 0);
+
+	renderCharacter(gameCharX, gameCharY, state);
+}
+
+// Events
+function mousePressed () {
+	startGame();
 }
 
 function keyPressed () {
@@ -749,6 +867,7 @@ function keyPressed () {
 		return;
 	};
 	if (isGameOver) return;
+	if (isPlummeting) return;
 	// Right arrow
 	if (keyCode && keyCode === 39) {
 		isRight = true;
@@ -759,7 +878,7 @@ function keyPressed () {
 	}
 	// Spacebar or arrow up
 	if (keyCode && (keyCode === 32 || keyCode === 38)) {
-		if (gameChar_y === horizon) {
+		if (gameCharY === horizon) {
 			isJumping = true;
 		}
 	}
@@ -767,6 +886,7 @@ function keyPressed () {
 
 function keyReleased () {
 	if (!isGameStarted) return;
+	if (isPlummeting) return;
 	if (isGameOver) {
 		state = '';
 		return;
