@@ -17,7 +17,7 @@ const scrollSpeedThree = 3;
 const scrollSpeedFour = 5;
 
 // Horizon
-const horizon = 432;
+const horizon = 435;
 
 // Font
 let fontFile = 'arcadeclassic.ttf'; 
@@ -33,8 +33,8 @@ let isJumping = false;
 let isFound = false;
 
 // Speeds 
-let runningSpeed = 6;
-let jumpingSpeed = 6;
+let runningSpeed = 5;
+let jumpingSpeed = 5;
 let fallingSpeed = 5;
 
 // Jumping height
@@ -215,8 +215,8 @@ function draw () {
 	// Draw the canyon
 	renderCanyons([
 		{ x: 500, width: 120 },
-		{ x: 1200, width: 120 },
-		{ x: 2000, width: 100 }
+		//{ x: 1200, width: 120 },
+		//{ x: 2000, width: 100 }
 	]);
 
 	// Draw the collectables
@@ -285,7 +285,7 @@ function walk () {
 	if (state.match(/-r/)) {
 		const ratio = (scrollPos[scrollPos.length - 1] - width) <= -Math.abs(gameWorldStopRight - width) ? 1 : 0.7;
 		if (ratio === 1) {
-			console.warn(scrollPos[scrollPos.length - 1] - width, -Math.abs(gameWorldStopRight - width));
+			//console.warn(scrollPos[scrollPos.length - 1] - width, -Math.abs(gameWorldStopRight - width));
 		}
 		if(gameCharX < width * ratio) {
 			if (gameCharX < (width - gameCharacterWidth)) {
@@ -293,7 +293,7 @@ function walk () {
 			}
 		}
 		if (ratio === 1) {
-			console.warn(gameCharX);
+			//console.warn(gameCharX);
 		}
 		return;
 	}
@@ -398,43 +398,192 @@ function renderGameText () {
 // Function to make Bob die
 function die () {
 	if (isTestMode) { return; }
-	canyons.map(canyon => {
-		//if (gameCharX + gameCharXOffsetR > canyon.x1 && gameCharX < canyon.x2 && (!isJumping && !isFalling)) {
-		if (gameCharXInWorld + gameCharXOffsetR > canyon.x1 && gameCharXInWorld < canyon.x2 && (!isJumping && !isFalling)) {
-			isPlummeting = true;
+	//console.warn(canyons[0]);
 
-			if (!diePosX) {
-				diePosX = gameCharX;
-			}
+	function ascension (x) {
+		//console.warn('DEAD');
+		isPlummeting = true;
 
-			gameCharX = diePosX;
-			//gameCharXInWorld = gameCharX + scrollPos;
+		state = '';
 
-			if (state.match('-l')) {
-				state = 'jump-l';
-				//gameCharX = constrain(gameCharX, canyon.x1 - 22, canyon.x2 + 50);
-			}
-			if (state.match('-r')) {
-				state = 'jump-r';
-				//gameCharX = constrain(gameCharX, canyon.x1 - 50, canyon.x2 - 18);
-			}
-			if (!isGameOver && gameCharY < canyonSpikeHeight) {
-				gameCharY += fallingSpeed;
-
-				//gameCharX = constrain(gameCharX, canyon.x1 - 18, canyon.x2 - 22);
-			} else {
-				state = '';
-				//gameCharX = constrain(gameCharX, canyon.x1 - 18, canyon.x2 - 22);
-				isGameOver = true;
-				isGameStarted = false;
-				isRight = false;
-				isLeft = false;
-				isJumping = false;
-				isFalling = false;
-				isPlummeting = false;
-				gameCharY = gameCharY - 5;
-			}
+		if (!diePosX) {
+			diePosX = x;
 		}
+		gameCharX = diePosX;
+
+		if (!isGameOver && gameCharY < canyonSpikeHeight) {
+			gameCharY += fallingSpeed;
+		} else {
+			
+			//gameCharX = constrain(gameCharX, canyon.x1 - 18, canyon.x2 - 22);
+			isGameOver = true;
+			isGameStarted = false;
+			isRight = false;
+			isLeft = false;
+			isJumping = false;
+			isFalling = false;
+			isPlummeting = false;
+			gameCharY = gameCharY - 5;
+		}
+	}
+
+
+	canyons.map(canyon => {
+
+
+		/*
+		{ x: 500, width: 120 },
+
+		Canyon is 500 -> 620.
+
+		face - x1 = 533 - 33
+		walk - x1 = 529 - 29
+
+		face - x2 = 623 - 3
+		walk - x2 = 627 - 7
+
+
+		beginning of canyon, face front: 493 / 533 (difference of 40)
+		end of canyon, face front: 583 / 623 (difference of 40)
+
+		beginning of canyon, walking: 489 / 529 (difference of 40)
+		beginning of canyon, walking: 587 / 627 (difference of 40)
+		*/
+
+		//if (canyon.x1 === 500) {
+
+			// Facing front, from left
+			//console.warn((gameCharXInWorld + 11), canyon.x1);
+			// if (state === 'walk-l' && ((gameCharXInWorld + 11) >= canyon.x1)) {
+			// 	console.warn('die');
+			// }
+
+			// if (state === 'walk-r' && ((gameCharXInWorld + 11) >= canyon.x1)) {
+			// 	console.warn('die');
+			// }
+
+			//(587, 493)
+
+			// Facing front, from right
+			// console.warn((gameCharXInWorld + gameCharacterWidth - 11), canyon.x2);
+			if (
+				(
+					// Walking right
+					state === 'walk-l'
+					&&
+					// x position is more than the left hand side of the canyon
+					((gameCharXInWorld + 11) >= canyon.x1)
+					&&
+					// x position is less that the right hand side of the canyon
+					((gameCharXInWorld + gameCharacterWidth - 11) <= canyon.x2)
+					&&
+					// Isn't falling or jumping
+					(!isJumping && !isFalling)
+				)
+			) {
+				ascension(gameCharX);
+				//console.warn('die left');
+				// isPlummeting = true;
+				// if (!diePosX) {
+				// 	diePosX = gameCharX;
+				// }
+				// gameCharX = diePosX;
+			}
+
+
+			// 489, 583
+
+			if (
+				(
+					// Walking right
+					state === 'walk-r'
+					&&
+					// x position is more than the left hand side of the canyon
+					((gameCharXInWorld + 11) >= canyon.x1)
+					&&
+					// x position is less that the right hand side of the canyon
+					((gameCharXInWorld + gameCharacterWidth - 11) <= canyon.x2)
+					&&
+					// Isn't falling or jumping
+					(!isJumping && !isFalling)
+				)
+			) {
+				ascension(gameCharX + 1);
+				// isPlummeting = true;
+				// if (!diePosX) {
+				// 	diePosX = gameCharX;
+				// }
+				// gameCharX = diePosX;
+				//console.warn('die right');
+			}
+
+
+
+			
+
+			
+			if (
+				// Facing front
+				state === ''
+				&&
+				// x position is more than the left hand side of the canyon
+				((gameCharXInWorld + 7) >= canyon.x1)
+				&&
+				// x position is less that the right hand side of the canyon
+				((gameCharXInWorld + gameCharacterWidth - 7) <= canyon.x2)
+				&&
+				// Isn't falling or jumping
+				(!isJumping && !isFalling)
+			) {
+				// isPlummeting = true;
+				// if (!diePosX) {
+				// 	diePosX = gameCharX;
+				// }
+				// gameCharX = diePosX;
+				ascension(gameCharX);
+			}
+
+		//}
+
+		//console.warn(gameCharX + gameCharXOffsetR, canyon.x1);
+
+
+		// //if (gameCharX + gameCharXOffsetR > canyon.x1 && gameCharX < canyon.x2 && (!isJumping && !isFalling)) {
+		// if (gameCharXInWorld + gameCharXOffsetR > canyon.x1 && gameCharXInWorld < canyon.x2 && (!isJumping && !isFalling)) {
+		// 	isPlummeting = true;
+
+		// 	if (!diePosX) {
+		// 		diePosX = gameCharX;
+		// 	}
+
+		// 	gameCharX = diePosX;
+		// 	//gameCharXInWorld = gameCharX + scrollPos;
+
+		// 	if (state.match('-l')) {
+		// 		state = 'jump-l';
+		// 		//gameCharX = constrain(gameCharX, canyon.x1 - 22, canyon.x2 + 50);
+		// 	}
+		// 	if (state.match('-r')) {
+		// 		state = 'jump-r';
+		// 		//gameCharX = constrain(gameCharX, canyon.x1 - 50, canyon.x2 - 18);
+		// 	}
+		// 	if (!isGameOver && gameCharY < canyonSpikeHeight) {
+		// 		gameCharY += fallingSpeed;
+
+		// 		//gameCharX = constrain(gameCharX, canyon.x1 - 18, canyon.x2 - 22);
+			// } else {
+			// 	state = '';
+			// 	//gameCharX = constrain(gameCharX, canyon.x1 - 18, canyon.x2 - 22);
+			// 	isGameOver = true;
+			// 	isGameStarted = false;
+			// 	isRight = false;
+			// 	isLeft = false;
+			// 	isJumping = false;
+			// 	isFalling = false;
+			// 	isPlummeting = false;
+			// 	gameCharY = gameCharY - 5;
+			// }
+		// }
 	});
 }
 
@@ -781,29 +930,12 @@ function renderMountains (data) {
 
 // Function to draw the canyons
 function renderCanyons (data) {
-	// Checks to make sure we don't position a canyon under a tree
-	function checkTreePosition (pos, width) {
-		let result;
-		for (let i = 0, x = trees.length; i < x; i++) {
-			if (pos > trees[i].x1 && pos < trees[i].x2) {
-				result = pos + 5;
-				return checkTreePosition(result, width);
-			} else if ((pos + width) > trees[i].x1 && (pos + width) < trees[i].x2) {
-				result = pos - 5;
-				return checkTreePosition(result, width);
-			} else {
-				result = pos;
-			}
-		}
-		return result;
-	}
-
 	for (let i = 0, x = data.length; i < x; i++ ) {
 		push();
 		strokeWeight(0);
 		fill(...canyonColor);
 		const width = data[i].width > 200 ? 200 : data[i].width;
-		const xPos = checkTreePosition(data[i].x + 2, width); // Adjust for stroke
+		const xPos = data[i].x; // Adjust for stroke
 		// The drop
 		rect(xPos, horizon, width, height - horizon);
 		// Left hand border
@@ -827,8 +959,8 @@ function renderCanyons (data) {
 		canyons = canyons || [];
 		if (!canyons[i]) {
 			canyons = canyons.concat([{
-				x1: (xPos - 2) + 20,
-				x2: (xPos - 2) + (width - 20)
+				x1: xPos,
+				x2: xPos + width
 			}])
 		}
 		pop();
@@ -897,12 +1029,37 @@ function startGame () {
 	isJumping = false;
 	isFound = false;
 
-	// Reset Bob
-	gameCharX = 50;
+	/*
+	{ x: 500, width: 120 },
+
+	Canyon is 500 -> 620.
+
+	face - x1 = 533 - 33
+	walk - x1 = 529 - 29
+
+	face - x2 = 623 - 3
+	walk - x2 = 627 - 7
+
+
+	beginning of canyon, face front: 493 / 533 (difference of 40)
+	end of canyon, face front: 583 / 623 (difference of 40)
+
+	beginning of canyon, walking: (489, 583) / 529 (difference of 40)
+	beginning of canyon, walking: (587, 493) / 627 (difference of 40)
+	*/
+
+	gameCharX = 450;
 	gameCharY = horizon;
-	state = '';
+	state = 'walk-r';
 	flashed = 0;
 	diePosX = null;
+	
+	// Reset Bob
+	// gameCharX = 450;
+	// gameCharY = horizon;
+	// state = '';
+	// flashed = 0;
+	// diePosX = null;
 
 	// Get a hold of Bobs position *in the world*
 	gameCharXInWorld = gameCharX - scrollPos[scrollPos.length - 1];
