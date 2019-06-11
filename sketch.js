@@ -333,7 +333,7 @@ function resetGameState () {
 	gameChar_xInWorld = gameChar_x - scrollPos[scrollPos.length - 1];
 
 	// Reset collectables
-	collectables = collectables.map(collectable => {
+	collectableDetection = collectableDetection.map(collectable => {
 		collectable.found = false;
 		return collectable;
 	});
