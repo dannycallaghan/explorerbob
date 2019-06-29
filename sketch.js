@@ -19,6 +19,11 @@ var trees_x;
 var canyons;
 var collectables;
 
+// Game settings
+const gameWorldSize = 4000;
+const gameWorldOffsetLeft = -500;
+const gameWorldStopRight = gameWorldSize + Math.abs(gameWorldOffsetLeft);
+
 function setup()
 {
 	createCanvas(1024, 576);
@@ -34,7 +39,7 @@ function setup()
 	scrollPos = 0;
 
 	// Initialise arrays of scenery objects.
-	trees_x = [-1060, -550, 10, 830, 1300, 2160, 2500, 3600];
+	trees_x = [-1060, -550, 10, 850, 1380, 2160, 2580, 3700];
 	clouds = [
 		{ x: -100, y: 50, size: 50 },
 		{ x: 40, y: 40, size: 10 },
@@ -56,7 +61,6 @@ function setup()
 		{ x: 3100, size: 50 },
 	];
 	canyons = [
-		{ x: -600, width: 120 },
 		{ x: 700, width: 120 },
 		{ x: 1200, width: 160 },
 		{ x: 2000, width: 100 },
@@ -64,13 +68,13 @@ function setup()
 		{ x: 3100, width: 120 }
 	];
 	collectables = [
-		{ x: -400, y: 294, size: 50 },
+		{ x: -340, y: 294, size: 50 },
 		{ x: 234, y: 394, size: 50 },
 		{ x: 732, y: 294, size: 50 },
 		{ x: 1234, y: 294, size: 50 },
 		{ x: 1600, y: 394, size: 50 },
 		{ x: 2300, y: 394, size: 50 },
-		{ x: 3200, y: 394, size: 50 }
+		{ x: 3250, y: 394, size: 50 }
 	];
 }
 
@@ -82,15 +86,18 @@ function draw()
 	fill(0, 155, 0);
 	rect(0, floorPos_y, width, height/4); // draw some green ground
 
-	/* #########################################################################
-	Scroll functionality start
-	######################################################################### */
+	// Custom - Draw the earth.
+	const earthColor = [202, 121, 37];
+	push();
+	fill(...earthColor);
+	rect(gameWorldOffsetLeft, floorPos_y, gameWorldSize, 150); 
+	pop();
+
+	// Scroll functionality (1)
 	push();
 	translate(scrollPos, 0);
 
-	/* #########################################################################
-	Draw clouds.
-	######################################################################### */
+	// Draw clouds.
 	const cloudsDistance = 60;
 	for (let i = 0, x = clouds.length; i < x; i++ ) {
 		const adjustedXPos = clouds[i].x + (cloudsDistance / 2);
@@ -107,9 +114,7 @@ function draw()
 		ellipse(adjustedXPos + (((large / 100) * cloudsDistance) * 2), clouds[i].y + ((large / 100) * 10), small, small);
 	}
 	
-	/* #########################################################################
-	Draw mountains.
-	######################################################################### */
+	// Draw mountains.
 	const mountainColor = [183, 209, 216];
 	const mountainSnowColor = [220, 232, 234];
 	const largeMountainRatio = 3.5;
@@ -134,9 +139,7 @@ function draw()
 		triangle(secondMountainXPos + snowHeight, yPos - snowHeight, secondMountainPeak + secondMountainXPos, yPos - secondMountainPeak, ((secondMountainPeak * 2)  + secondMountainXPos) - snowHeight, yPos - snowHeight);
 	}
 
-	/* #########################################################################
-	Draw trees.
-	######################################################################### */
+	// Draw trees.
 	const treeColor = [87, 221, 111];
 	const treeBorderColor = [0, 0, 0];
 	const treeTrunkColor = [119, 69, 17];
@@ -188,14 +191,33 @@ function draw()
 		// Trunks - drawn last so sit above all tress
 		for (let p = bushes.length - 1; p >= 0; p--) {
 			fill(...treeTrunkColor);
-			rect((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2), yPos - (bushes[p].height / 4) + 1, bushWidth / 4, (bushes[p].height / 4) - 2);
+			rect((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2), yPos - (bushes[p].height / 4) + 1, bushWidth / 4, bushes[p].height / 4);
 			line((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2) - (bushWidth / 15), yPos - (bushes[p].height / 4) + 1, ((p * halfBush) + xPos + ((bushWidth - (bushWidth / 4)) / 2) - 5) + (bushWidth / 4) + ((bushWidth / 15) * 2), yPos - (bushes[p].height / 4) + 1);
 		}
 	}
 
-	/* #########################################################################
-	Draw canyons.
-	######################################################################### */
+	// Custom - Draw grass.
+	const grassColor = treeColor;
+	noStroke();
+	fill(...grassColor);
+	rect(gameWorldOffsetLeft, floorPos_y, gameWorldSize, 20);
+	stroke(0);
+	strokeWeight(2);
+	fill(...grassColor);
+	for (let grassStartPos = gameWorldOffsetLeft; grassStartPos < (gameWorldSize + gameWorldOffsetLeft); grassStartPos = grassStartPos + 36) {
+		bezier(grassStartPos, floorPos_y + 20, grassStartPos + 20, floorPos_y + 40, grassStartPos + 40, floorPos_y + 40, grassStartPos + 60, floorPos_y + 20);
+		grassStartPos = grassStartPos + 60;
+		bezier(grassStartPos, floorPos_y + 20, grassStartPos + 12, floorPos_y + 35, grassStartPos + 24, floorPos_y + 35, grassStartPos + 36, floorPos_y + 20);
+	}
+
+	// Custom - floor.
+	push();
+	stroke(0);
+	strokeWeight(2);
+	line(gameWorldOffsetLeft, floorPos_y + 1, gameWorldSize, floorPos_y + 1);
+	pop();
+
+	// Draw canyons.
 	const canyonColor = [166, 190, 198]
 	for (let i = 0, x = canyons.length; i < x; i++ ) {
 		strokeWeight(0);
@@ -223,9 +245,7 @@ function draw()
 		}
 	}
 
-	/* #########################################################################
-	Draw collectable items
-	######################################################################### */
+	// Draw collectable items
 	const sizeRatio = 25;
 	stroke(0);
 	strokeWeight(2);
@@ -249,15 +269,10 @@ function draw()
 		endShape(CLOSE);
 	}
 
-	/* #########################################################################
-	Scroll functionality stop
-	######################################################################### */
+	// Scroll functionality (2)
 	pop();
 
-	/* #########################################################################
-	Draw the game character - this must be last
-	######################################################################### */
-	// Character colors
+	// Draw the game character - this must be last
 	const primaryColor = [223, 39, 59];
 	const skinColor = [228, 198, 128];
 	const secondaryColor = [68, 121, 187];
@@ -371,7 +386,20 @@ function draw()
 		}
 		else
 		{
-			scrollPos += 5;
+
+			// Custom - stop Bob when he goes 'too far' left
+			if (
+				(
+					scrollPos >= 0 &&
+					scrollPos < Math.abs(gameWorldOffsetLeft)
+				)
+				|| 
+				(
+					scrollPos < 0
+				)
+			) {
+				scrollPos += 5;
+			}
 		}
 	}
 
@@ -383,7 +411,17 @@ function draw()
 		}
 		else
 		{
-			scrollPos -= 5; // negative for moving against the background
+			// Custom - stop Bob when he goes 'too far' right
+			if (
+					(
+						(scrollPos <= 0) &&
+						((scrollPos - width) >= -Math.abs(gameWorldStopRight - width))
+					)
+					||
+					(scrollPos > 0)
+			) {
+				scrollPos -= 5; // negative for moving against the background
+			}
 		}
 
 	}
