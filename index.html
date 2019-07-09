@@ -3,8 +3,27 @@
   <head>
     <script src="p5.min.js"></script>
     <script src="sketch.js"></script>
-    <style> body {padding: 0; margin: 0;} </style>
+    <style>
+    body {padding: 0; margin: 0;} 
+    img {
+      position: absolute;
+      top: 62px;
+      left: 172px;
+      width: 47px;
+    }
+    #foo {
+      width: 200px;
+      height: 200px;
+      position: absolute;
+      top: 0;
+      right: 0;
+      visibility: hidden;
+    }
+    </style>
   </head>
   <body>
+    <img src="spaceman.png" />
+
+    <textarea id="foo"></textarea>
   </body>
 </html>
