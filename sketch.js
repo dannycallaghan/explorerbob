@@ -33,13 +33,8 @@ of code to draw then you've probably over done it.
 ** Only submit your sketch.js **
 
 */
-let personalFrameRate = 10;
-let personalFrameRateCount = 1;
-let frameCount = 0;
-
 var gameChar_x = 0;
 var gameChar_y = 0;
-
 
 const standardBlue = [87, 172, 230];
 const darkBlue = [51, 103, 127];
@@ -52,7 +47,6 @@ const tankOnColor = [255, 255, 255];
 const planetLogoMain = [247, 228, 127];
 const planetLogoBorder = [209, 235, 241];
 const planetLogoRed = [206, 45, 33];
-
 
 const topHalfX = 35;
 const topHalfY = 88;
@@ -72,109 +66,53 @@ const legWidthAtBottom = legWidthAtTop + 1;
 const rotatationContainer = {};
 
 
-function setup()
-{
+function setup () {
 	createCanvas(400, 600);
 
 	background(255);
 
-
 	loadImage('spaceman.png', img => {
 		//image(img, 22, 62, 47, 77);
-	  });
-
-	//image(img, 10, 10);
-
-	//legRotateAmountLeft = PI / 2;
-	//legRotateAmountRight = (3 * PI) / 2;
+	});
 
 }
 
-function mousePressed () {
-}
-
-function _mousePressed() {
-
-	const foo = document.getElementById('foo');
-
-	foo.value = `${foo.value}vertex(${Math.round(mouseX)}, ${Math.round(mouseY)})\n`;
-
-}
-
-gameChar_x = 85;
-
-function draw()
-{
+function draw () {
 
 	background(255);
 
+	gameChar_x = 0;
+	gameChar_y = 99.5;
 
-	frameCount++;
-	// if (frameCount % personalFrameRate === 0) {
-	// 	frameCount = 0;
-	// 	personalFrameRateCount++;
-	// }
-
-	stroke(255, 0, 0);
-	noFill();
-	// translate(width / 2, height / 2);
-	// rotate(45);
-	rect(20, 60, 50, 80);
-	noStroke();
-	fill(0);
-	text("1. standing front facing", 20, 160);
-
-	
-	//gameChar_y = 137;
-	//Add your code here ...
-
-	drawCharacter(gameChar_x, gameChar_y);
-
-	function drawCharacter (x, y, state) {
-
-		
-	}
-
-	gameChar_x = 40;
-	gameChar_y = 100;
-
-	// HEIGHT IS 76.5
-
-	// stroke(255, 0, 0);
-	// noFill();
-	// rect(20, 60, 50, 80);
-	// noStroke();
-	// fill(0);
-	// text("1. standing front facing", 20, 160);
-
-	let __state = 'walk-left';
-	let __side = 'left';
-	
-	//if (frameCount % 180 === 0) {
-		renderLegs(gameChar_x, gameChar_y, __state);
-	//}
-	
-	
-	renderArm(gameChar_x, gameChar_y, __state, 'right');
-	renderBody(gameChar_x, gameChar_y, __state);
-	renderArm(gameChar_x, gameChar_y, __state, 'left');
-	renderHead(gameChar_x, gameChar_y, __state);
-
+	renderCharacter(gameChar_x, gameChar_y, 'walk-left');
 
 }
 
 
-function doRotate (direction, limb, forward, back, speed = 5) {
+function renderCharacter (x, y, state) {
+
+	const backLimb = state.match(/right/) ? 'right' : 'left';
+	const frontLimb = state.match(/right/) ? 'left' : 'right';
+
+	renderArm(x, y, state, backLimb);
+	renderLegs(x, y, state);
+	renderBody(x, y, state);
+	renderHead(x, y, state);
+	renderArm(x, y, state, frontLimb);
+	
+}
+
+function doRotate (limbType, direction, limb, forward, back, speed = 10) {
 	const limbDirOne = forward > back ? 'back' : 'forward';
 	const limbDirTwo = forward > back ? 'forward' : 'back';
-	const ref = `${direction}_${limb}`;
+	const ref = `${limbType}_${direction}_${limb}`;
 	rotatationContainer[ref] = rotatationContainer[ref] || {};
 	rotatationContainer[ref].step = rotatationContainer[ref].forward !== undefined ? rotatationContainer[ref].step : !(forward > back);
 	rotatationContainer[ref].forward = rotatationContainer[ref].forward !== undefined ? rotatationContainer[ref].forward : forward;
 	rotatationContainer[ref].back = rotatationContainer[ref].back !== undefined ? rotatationContainer[ref].back : back;
 	rotatationContainer[ref].speed = rotatationContainer[ref].speed !== undefined ? rotatationContainer[ref].speed : speed;
 
-	 function frontToBack () {
+	function frontToBack () {
 		if (rotatationContainer[ref][limbDirOne] < rotatationContainer[ref][limbDirTwo]) {
 			rotatationContainer[ref][limbDirOne] = rotatationContainer[ref][limbDirOne] + rotatationContainer[ref].speed;
 			rotate(radians(rotatationContainer[ref][limbDirOne]));
@@ -196,7 +134,7 @@ function doRotate (direction, limb, forward, back, speed = 5) {
 		rotatationContainer[ref].back = back;
 	}
 
-	if (limb === 'right') {
+	if (limb === 'left') {
 		if (rotatationContainer[ref].step) {
 			frontToBack();
 		}
@@ -215,11 +153,15 @@ function doRotate (direction, limb, forward, back, speed = 5) {
 }
 
 function renderLegs (_x, _y, _state = 'front') {
-	let state = _state;
-	let legHeight = 28;
-	let xOffset = state.match(/front/) ? 10.5 : 17;
-	let y = _y - legHeight;
-	let x = _x + xOffset;
+	const state = _state;
+	const legHeight = 28;
+	const xOffset = state.match(/front/) ? 10.5 : 17;
+	const y = _y - legHeight;
+	const x = _x + xOffset;
+	const setSign = (num) => {
+		return state.match(/left/) ? Math.abs(num) : -Math.abs(num);
+	};
+
 	if (_state.match(/front/)) {
 
 		// Display settings
@@ -280,98 +222,115 @@ function renderLegs (_x, _y, _state = 'front') {
 
 	} else {
 
-		if (state.match(/left/)) {
+		// Display settings
+		fill(...standardBlue);
+		strokeWeight(1);
+		stroke(...darkBlue);
 
-			// Display settings
-			fill(...standardBlue);
-			strokeWeight(1);
-			stroke(...darkBlue);
-
-			// Renders pelvis
-			function pelvis () {
-				beginShape();
-				vertex(x, y);
-				vertex(x + topHalfDepth, y);
-				vertex(x + topHalfDepth, y + 5);
-				vertex(x, y + 5);
-				endShape(CLOSE);
-			}
-
-			// Left leg
-			push();
-				translate(x + 7.5, y + (topHalfDepth / 2) + 1.5);
-				doRotate('left', 'right', 0, 180);
-				beginShape();
-					vertex(0, (topHalfDepth / 2) - 0.5); // 1
-					vertex(0, 0 - (topHalfDepth / 2) + 2); // 2
-					vertex(0 + 22, 0 - (topHalfDepth / 2) + 2); // 3
-					vertex(0 + 22, 0 - (topHalfDepth / 2) - 3); // 4
-					vertex(0 + 28, 0 - (topHalfDepth / 2) - 3); // 5
-					vertex(0 + 28, 0 - (topHalfDepth / 2) + 14); // 6
-					vertex(0, 0 - (topHalfDepth / 2) + 14); // 7
-				endShape(CLOSE);
-				arc(0, 0, topHalfDepth, topHalfDepth, PI - 8, PI + 21.2, OPEN);
-			pop();
-
-			// Pelvis
-			pelvis();
-
-			// Right leg
-			const offSetX = 1;
-			push();
-				translate(x + 7.5, y + (topHalfDepth / 2) + 1.5);
-				doRotate('left', 'left', 360, 180);
-				beginShape();
-					vertex(0 - offSetX, (topHalfDepth / 2) - 2); // 1
-					vertex(0 - offSetX, 0 - (topHalfDepth / 2)); // 2
-					vertex(0 - offSetX - 28, 0 - (topHalfDepth / 2)); // 2
-					vertex(0 - offSetX - 28, 0 - (topHalfDepth / 2) + 17); // 3
-					vertex(0 - offSetX - 22, 0 - (topHalfDepth / 2) + 17); // 4
-					vertex(0 - offSetX - 22, 0 - (topHalfDepth / 2) + 12); // 5
-					vertex(0 - offSetX, 0 - (topHalfDepth / 2) + 12); // 6
-				endShape(CLOSE);
-				arc(0, 0, topHalfDepth, topHalfDepth, PI + 7.6, PI - 19.7, OPEN);
-			pop();
-
+		// Renders pelvis
+		function pelvis () {
+			beginShape();
+			vertex(x, y);
+			vertex(x + setSign(topHalfDepth), y);
+			vertex(x + setSign(topHalfDepth), y + 5);
+			vertex(x, y + 5);
+			endShape(CLOSE);
 		}
+
+		// Front leg
+		push();
+			translate(x + setSign(7.5), y + (topHalfDepth / 2) + 1.5);
+			if (state.match(/left/)) {
+				doRotate('leg', 'left', 'left', 0, 180);
+			} else {
+				doRotate('leg', 'right', 'right', 180, 360);
+			}
+			beginShape();
+				vertex(0, (topHalfDepth / 2) - 0.5); // 1
+				vertex(0, 0 - (topHalfDepth / 2) + 2); // 2
+				vertex(0 + setSign(12), 0 - (topHalfDepth / 2) + 2); // 3
+				vertex(0 + setSign(12), 0 - (topHalfDepth / 2) - 3); // 4
+				vertex(0 + setSign(18), 0 - (topHalfDepth / 2) - 3); // 5
+				vertex(0 + setSign(18), 0 - (topHalfDepth / 2) + 14); // 6
+				vertex(0, 0 - (topHalfDepth / 2) + 14); // 7
+			endShape(CLOSE);
+			if (state.match(/left/)) {
+				arc(0, 0, topHalfDepth, topHalfDepth, PI - 8, PI + 21.2, OPEN);
+			} else {
+				arc(0, 0, topHalfDepth, topHalfDepth, PI + 7.11, PI - 20.3, OPEN);
+			}
+		pop();
+
+		// Pelvis
+		pelvis();
+		
+		// Back leg
+		push();
+			translate(x + setSign(7.5), y + (topHalfDepth / 2) + 1.5);
+			if (state.match(/left/)) {
+				doRotate('leg', 'left', 'right', 360, 180);
+			} else {
+				doRotate('leg', 'right', 'left', 180, 0);
+			}
+			beginShape();
+				vertex(0, (topHalfDepth / 2) - 2); // 1
+				vertex(0, 0 - (topHalfDepth / 2)); // 2
+				vertex(0 - setSign(18), 0 - (topHalfDepth / 2)); // 2
+				vertex(0 - setSign(18), 0 - (topHalfDepth / 2) + 17); // 3
+				vertex(0 - setSign(12), 0 - (topHalfDepth / 2) + 17); // 4
+				vertex(0 - setSign(12), 0 - (topHalfDepth / 2) + 12); // 5
+				vertex(0, 0 - (topHalfDepth / 2) + 12); // 6
+			endShape(CLOSE);
+			if (state.match(/left/)) {
+				arc(0, 0, topHalfDepth, topHalfDepth, PI + 7.6, PI - 19.7, OPEN);
+			} else {
+				arc(0, 0, topHalfDepth, topHalfDepth, PI - 8.6, PI + 20.6, OPEN);
+			}
+		pop();
+
 	}
+
 }
 
 function renderHead (_x, _y, _state = 'front') {
-	let state = _state;
-	let headHeight = 76.5;
-	let xOffset = state.match(/front/) ? 12 : 14;
-	let y = _y - headHeight;
-	let x = _x + xOffset;
-	let headWidth = 20;
-
-	// Display settings
-	stroke(...darkBlue);
-	strokeWeight(1);
-	fill(...standardBlue);
-
-	// Curved top and bottom
-	ellipse(x + (headWidth / 2) + 0.5, y + 8, headWidth, 15);
-	ellipse(x + (headWidth / 2) + 0.5, y + 20, headWidth, 8);
-
-	// Display settings
-	noStroke();
-
-	// Main body of the helmet
-	rect(x, y + 7, headWidth, 13.5);
-
-	// Display settings
-	stroke(...darkBlue);
-	strokeWeight(1);
-
-	// Left and right hand side of the main body of the helmet
-	line(x, y + 6.5, x, y + 20);
-	line(x + headWidth, y + 6.5, x + headWidth, y + 20);
-	
-	// Display settings
-	fill(248, 226, 87);
+	const state = _state;
+	const headHeight = 76.5;
+	const xOffset = state.match(/front/) ? 12 : 14;
+	const y = _y - headHeight;
+	const x = _x + xOffset;
+	const headWidth = 20;
+	const walkOffSet = state.match(/right/) ? 6 : 0;
+	const setSign = (num) => {
+		return state.match(/right/) ? Math.abs(num) : -Math.abs(num);
+	};
 
 	if (state.match(/front/)) {
+
+		// Display settings
+		stroke(...darkBlue);
+		strokeWeight(1);
+		fill(...standardBlue);
+
+		// Curved top and bottom
+		ellipse(x + (headWidth / 2) + 0.5, y + 8, headWidth, 15);
+		ellipse(x + (headWidth / 2) + 0.5, y + 20, headWidth, 8);
+
+		// Display settings
+		noStroke();
+
+		// Main body of the helmet
+		rect(x, y + 7, headWidth, 13.5);
+
+		// Display settings
+		stroke(...darkBlue);
+		strokeWeight(1);
+
+		// Left and right hand side of the main body of the helmet
+		line(x, y + 6.5, x, y + 20);
+		line(x + headWidth, y + 6.5, x + headWidth, y + 20);
+
+		// Display settings
+		fill(...skinColor);
 
 		// Left and right curved bits of the visor
 		ellipse(x + 3.5, y + 14.5, 2, 10);
@@ -408,48 +367,74 @@ function renderHead (_x, _y, _state = 'front') {
 
 	} else {
 
-		// Left and right curved bits of the visor
-		ellipse(x + 12, y + 14.5, 2, 10);
+		// Display settings
+		fill(...standardBlue);
+
+		// Main body of helmet
+		beginShape();
+		vertex(x - setSign(0.5) + walkOffSet, y + 6);
+		vertex(x - setSign(20.5) + walkOffSet, y + 6);
+		vertex(x - setSign(20.5) + walkOffSet, y + 9);
+		vertex(x - setSign(12) + walkOffSet, y + 9);
+		vertex(x - setSign(12) + walkOffSet, y + 18.5);
+		vertex(x - setSign(21.5) + walkOffSet, y + 18.5);
+		vertex(x - setSign(21.5) + walkOffSet, y + 21);
+		vertex(x - setSign(0.5) + walkOffSet, y + 21.5);
+		endShape(CLOSE);
+
+		// Top and bottom of helmet
+		arc(x - setSign(10.5) + walkOffSet, y + 11.5, 22.8, 23, PI - 5.84, PI + 21.55, OPEN);
+		arc(x - setSign(11) + walkOffSet, y + 17, 26, 13, PI - 9.12, PI + 12.23, OPEN);
+
+		// Display settings
+		fill(...skinColor);
+		stroke(...darkBlue);
+		
+		// Side of visor
+		ellipse(x - setSign(12) + walkOffSet, y + 13.5, 2, 9.5);
 
 		// Display settings
 		noStroke();
 
-		// Main body of the visor
-		rect(x + 12, y + 10, 9, 9);
-
-		// Display settings
-		stroke(...darkBlue);
-		strokeWeight(1);
-
-		// Top and bottom visor
-		line(x + 11.5, y + 9, x + 20, y + 9);
-		line(x + 11.5, y + 19, x + 20, y + 19);
+		// Main body of visor
+		if (state.match(/left/)) {
+			rect(x - setSign(12), y + 9.5, 7, 8.5);
+		} else {
+			rect(x - setSign(12) - 1, y + 9.5, 7, 8.5);
+		}
 
 		// Display settings
 		fill(0, 0, 0);
 		noStroke();
 		
-		// Eyes
-		ellipse(x + 19, y + 13.5, 2, 2);
+		// Eye
+		ellipse(x - setSign(17.5) + walkOffSet, y + 13.5, 2, 2);
 		
 		// Display settings
 		noFill();
 		stroke(1)
 
-		let xOffSet = 10;
+		// Mouth
+		if (state.match(/left/)) {
+			line(x - setSign(16) + walkOffSet, y + 16, x - setSign(18) + walkOffSet, y + 16.5);
+		} else {
+			line(x - setSign(16) + walkOffSet - 1, y + 16, x - setSign(18) + walkOffSet - 1, y + 16.5);
+		}
 
-		// Mouth - smile
-		curve(x - 3 + xOffSet, y + 5, x + 8.5 + xOffSet, y + 16.5, x + 10.5 + xOffSet, y + 18, x + 5 + xOffSet, y + 17);
 	}
 
 }
 
 function renderBody (_x, _y, _state = 'front') {
-	let state = _state;
-	let bodyHeight = 50;
-	let xOffset = state.match(/front/) ? 13.5 : 9;
-	let y = _y - bodyHeight;
-	let x = _x + xOffset;
+	const state = _state;
+	const bodyHeight = 50;
+	const xOffset = state.match(/front/) ? 13.5 : 9;
+	const y = _y - bodyHeight;
+	const x = _x + xOffset;
+	const tankOffSet = _state.match(/left/) ? 0 : -6;
+	const setSign = (num) => {
+		return state.match(/left/) ? Math.abs(num) : -Math.abs(num);
+	};
 	
 	// Display settings
 	stroke(...darkBlue);
@@ -468,35 +453,28 @@ function renderBody (_x, _y, _state = 'front') {
 	} else {
 		// Display settings
 		fill(...standardBlue);
-
-		vertex(x, y - 2);
-		vertex(x + tankDepth + topHalfDepth, y - 2);
-		vertex(x + tankDepth + topHalfDepth, y - 2 + tankHeight);
-		vertex(x + tankDepth, y - 2 + tankHeight);
-		vertex(x, y - 2 + tankHeight);
+		vertex(x + tankOffSet, y - 2);
+		vertex(x + tankOffSet + tankDepth + topHalfDepth, y - 2);
+		vertex(x + tankOffSet + tankDepth + topHalfDepth, y - 2 + tankHeight);
+		vertex(x + tankOffSet + tankDepth, y - 2 + tankHeight);
+		vertex(x + tankOffSet, y - 2 + tankHeight);
 	}
 	endShape(CLOSE);
 
 	// Tank tops
 	if (!state.match(/front/)) {
 		beginShape();
-		vertex(x + 2, y - 5);
-		vertex(x + 6, y - 5);
-		vertex(x + 6, y - 2);
-		vertex(x + 2, y - 2);
-		endShape(CLOSE);
-	}
-
-	// Tank air
-	if (state.match(/jump/)) {	
-		// Display settings
-		fill(...tankOnColor);
-		noStroke();
-
-		beginShape();
-		vertex(x, y - 1 + tankHeight);
-		vertex(x + tankDepth, y - 1 + tankHeight);
-		vertex(x + tankDepth / 2, y - 1 + tankHeight + 10);
+		if (state.match(/right/)) {
+			vertex(x + 2 + tankDepth, y - 5);
+			vertex(x + 6 + tankDepth, y - 5);
+			vertex(x + 6 + tankDepth, y - 2);
+			vertex(x + 2 + tankDepth, y - 2);
+		} else {
+			vertex(x + 2, y - 5);
+			vertex(x + 6, y - 5);
+			vertex(x + 6, y - 2);
+			vertex(x + 2, y - 2);
+		}
 		endShape(CLOSE);
 	}
 
@@ -514,8 +492,8 @@ function renderBody (_x, _y, _state = 'front') {
 		vertex(x - 5, y + topHalfHeight);
 	} else {
 		vertex(x + tankDepth, y);
-		vertex(x + tankDepth + topHalfDepth, y);
-		vertex(x + tankDepth + topHalfDepth, y + topHalfHeight);
+		vertex(x + tankDepth + setSign(topHalfDepth), y);
+		vertex(x + tankDepth + setSign(topHalfDepth), y + topHalfHeight);
 		vertex(x + tankDepth, y + topHalfHeight);
 	}
 	endShape(CLOSE);
@@ -562,7 +540,6 @@ function renderHand (x, y, state, side) {
 			(hand_y - 1)
 		];
 	};
-	let helperX, helperY;
 
 	// Display settings
 	fill(...skinColor);
@@ -589,51 +566,6 @@ function renderHand (x, y, state, side) {
 		}
 	}
 
-	if (state.match(/walk/)) {
-		if (side.match(/right/)) {
-			// Wrist
-			beginShape();
-			vertex(x + 20.5, y - 5);
-			vertex(x + 21, y - 5.5);
-			vertex(x + 24, y - 3);
-			vertex(x + 23.5, y - 2.5);
-			endShape(CLOSE);
-
-			// Helpers
-			helperX = 24.5;
-			helperY = 12;
-			
-			// Hand
-			beginShape();
-			vertex(x + helperX, y - helperY);
-			vertex(x + helperX + 5, y - helperY + 4);
-			vertex(x + helperX + 1, y - helperY + 9);
-			vertex(x + helperX - 4, y - helperY + 5);
-			endShape(CLOSE);
-		}
-
-		if (side.match(/left/)) {
-			// Wrist
-			beginShape();
-			vertex(x - 17, y + 12.5);
-			vertex(x - 14.5, y + 15);
-			vertex(x - 15, y + 15.5);
-			vertex(x - 17.5, y + 13);
-			endShape(CLOSE);
-
-			// Helpers
-			let helperX = -19;
-			let helperY = -13;
-
-			// Hand
-			beginShape();
-			vertex(x + helperX, y - helperY);
-			vertex(x + helperX + 4, y - helperY + 4);
-			vertex(x + helperX - 0, y - helperY + 8);
-			vertex(x + helperX - 4, y - helperY + 4);
-			endShape(CLOSE);
-		}
-	}
 }
 
 function renderArm (_x, _y, _state = 'front', _side = 'right') {
@@ -643,9 +575,11 @@ function renderArm (_x, _y, _state = 'front', _side = 'right') {
 	let xOffset = state.match(/front/) ? 11 : 23.5;
 	let y = _y - armHeight;
 	let x = _x + xOffset;
-
-	const setSign = (num) => {
-		return side.match(/left/) ? -Math.abs(num) : Math.abs(num);
+	const setSign = (num, arm = true) => {
+		if (arm) {
+			return side.match(/left/) ? Math.abs(num) : -Math.abs(num);
+		}
+		return state.match(/left/) ? Math.abs(num) : -Math.abs(num);
 	}
 	
 	// Display settings
@@ -660,10 +594,10 @@ function renderArm (_x, _y, _state = 'front', _side = 'right') {
 		// Arm
 		beginShape();
 		vertex((x + armOffSet), y);
-		vertex((x + armOffSet) - setSign(5), y + 8);
-		vertex((x + armOffSet) - setSign(8), y + 19);
-		vertex((x + armOffSet) + setSign(2), y + 19);
-		vertex((x + armOffSet) + setSign(2), y);
+		vertex((x + armOffSet) + setSign(5), y + 8);
+		vertex((x + armOffSet) + setSign(8), y + 19);
+		vertex((x + armOffSet) - setSign(2), y + 19);
+		vertex((x + armOffSet) - setSign(2), y);
 		endShape(CLOSE);
 
 		// Hand
@@ -675,48 +609,146 @@ function renderArm (_x, _y, _state = 'front', _side = 'right') {
 	}
 
 	if (state.match(/walk/)) {
-		
-		if (side.match(/left/)) {
-			// Display settings
-			stroke(...darkBlue);
-			strokeWeight(1);
-			fill(...standardBlue);
-
-			// Arm
-			push();
-			beginShape();
-			vertex(x, y);
-			vertex(x - 11, y + 5);
-			vertex(x - 17, y + 11);
-			vertex(x - 13, y + 15);
-			vertex(x - 7, y + 9);
-			vertex(x, y + 6);
-			endShape(CLOSE);
-			pop();
-
-			// Hand
-			renderHand(x, y, state, side);
-		}
 
 		if (side.match(/right/)) {
 
-			// Display settings
-			stroke(...darkBlue);
-			strokeWeight(1);
-			fill(...standardBlue);
+			push();
+				// Arm
+				if (state.match(/left/)) {
+					translate(x - 0.5, y + 5);
+				} else {
+					translate(x - 14, y + 4);
+				}
+				doRotate('arm', 'right', 'left', 0, 180);
+				beginShape();
+					if (state.match(/left/)) {
+						vertex(0 + setSign(1.5, false), 0 + setSign(4, false));
+						vertex(0 + setSign(7.5, false), 0 + setSign(4, false));
+						vertex(0 + setSign(14, false), 0 - setSign(6.5, false));
+						vertex(0 + setSign(8, false), 0 - setSign(9.5, false));
+						vertex(0 + setSign(4, false), 0 - setSign(5, false));
+						vertex(0 + setSign(1.5, false), 0 - setSign(5, false));
+					} else {
+						vertex(0 - setSign(1.5, false), 0 + setSign(4, false));
+						vertex(0 - setSign(7.5, false), 0 + setSign(4, false));
+						vertex(0 - setSign(14, false), 0 - setSign(6.5, false));
+						vertex(0 - setSign(8, false), 0 - setSign(9.5, false));
+						vertex(0 - setSign(4, false), 0 - setSign(5, false));
+						vertex(0 - setSign(1.5, false), 0 - setSign(5, false));
+					}
+				endShape(CLOSE);
+				if (state.match(/left/)) {
+					arc(1.5, 0 - 0.5, 9.1, 9.1, PI - setSign(4.55), PI + setSign(23.4), OPEN);
+				} else {
+					arc(1.5, 0 + 0.5, 9.1, 9.1, PI - setSign(4.55), PI + setSign(23.4), OPEN);
+				}
 
-			// Arm
-			beginShape();
-			vertex(x, y);
-			vertex(x + 15, y);
-			vertex(x + 19, y - 5);
-			vertex(x + 24, y - 1);
-			vertex(x + 18, y + 6);
-			vertex(x, y + 6);
-			endShape(CLOSE);
+				// Display settings
+				noStroke();
+				fill(...skinColor);
 
-			// Hand
-			renderHand(x, y, state, side);
+				// Hand
+				if (state.match(/right/)) {
+					beginShape();
+						vertex(0 + 15.5, 0 + 8.5);
+						vertex(0 + 8, 0 + 12.5);
+						vertex(0 + 12, 0 + 19);
+						vertex(0 + 20, 0 + 15.5);
+					endShape(CLOSE);
+
+					beginShape();
+						vertex(0 + 15, 0 + 9);
+						vertex(0 + 10, 0 + 12.5);
+						vertex(0 + 8.5, 0 + 9.5);
+						vertex(0 + 14, 0 + 7);
+					endShape(CLOSE);
+				} else {
+					beginShape();
+						vertex(0 + 15.5, 0 - 8.5);
+						vertex(0 + 8, 0 - 12.5);
+						vertex(0 + 12, 0 - 19);
+						vertex(0 + 20, 0 - 15.5);
+					endShape(CLOSE);
+
+					beginShape();
+						vertex(0 + 15, 0 - 9);
+						vertex(0 + 10, 0 - 12.5);
+						vertex(0 + 8.5, 0 - 9.5);
+						vertex(0 + 14, 0 - 7);
+					endShape(CLOSE);
+				}
+			pop();
+
+		} else {
+
+			push();
+				// Arm
+				if (state.match(/left/)) {
+					translate(x + 0.5, y + 4);
+				} else {
+					translate(x - 11.5, y + 5);
+				}
+				doRotate('arm', 'left', 'right', 360, 180);
+				beginShape();
+					if (state.match(/left/)) {
+						vertex(0 - setSign(1.5, false), 0 - setSign(4, false));
+						vertex(0 - setSign(7.5, false), 0 - setSign(4, false));
+						vertex(0 - setSign(14, false), 0 + setSign(6.5, false));
+						vertex(0 - setSign(8, false), 0 + setSign(9.5, false));
+						vertex(0 - setSign(4, false), 0 + setSign(5, false));
+						vertex(0 - setSign(1.5, false), 0 + setSign(5, false));
+					} else {
+						vertex(0 + setSign(1.5, false), 0 - setSign(4, false));
+						vertex(0 + setSign(7.5, false), 0 - setSign(4, false));
+						vertex(0 + setSign(14, false), 0 + setSign(6.5, false));
+						vertex(0 + setSign(8, false), 0 + setSign(9.5, false));
+						vertex(0 + setSign(4, false), 0 + setSign(5, false));
+						vertex(0 + setSign(1.5, false), 0 + setSign(5, false));
+					}
+				endShape(CLOSE);
+				if (state.match(/left/)) {
+					arc(-2.5, 0.5, 9.1, 9.1, PI - setSign(4.6), PI + setSign(23.5), OPEN);
+				} else {
+					arc(-2.5, -0.5, 9.1, 9.1, PI - setSign(4.6), PI + setSign(23.5), OPEN);
+				}
+
+				// Display settings
+				noStroke();
+				fill(...skinColor);
+
+				// Hand
+				if (state.match(/right/)) {
+					beginShape();
+						vertex(0 - 15.5, 0 - 8.5);
+						vertex(0 - 8, 0 - 12.5);
+						vertex(0 - 12, 0 - 19);
+						vertex(0 - 20, 0 - 15.5);
+					endShape(CLOSE);
+
+					beginShape();
+						vertex(0 - 15, 0 - 9);
+						vertex(0 - 10, 0 - 12.5);
+						vertex(0 - 8.5, 0 - 9.5);
+						vertex(0 - 14, 0 - 7);
+					endShape(CLOSE);
+				} else {
+					beginShape();
+						vertex(0 - 15.5, 0 + 8.5);
+						vertex(0 - 8, 0 + 12.5);
+						vertex(0 - 12, 0 + 19);
+						vertex(0 - 20, 0 + 15.5);
+					endShape(CLOSE);
+
+					beginShape();
+						vertex(0 - 15, 0 + 9);
+						vertex(0 - 10, 0 + 12.5);
+						vertex(0 - 8.5, 0 + 9.5);
+						vertex(0 - 14, 0 + 7);
+					endShape(CLOSE);
+				}
+
+				pop();
+
 		}
 	}
 }
