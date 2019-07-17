@@ -19,6 +19,9 @@ const gameWorldSize = 4000;
 const gameWorldOffsetLeft = -500;
 const gameWorldStopRight = gameWorldSize + Math.abs(gameWorldOffsetLeft);
 
+// Player settings
+let game_score = 0;
+
 // Scrolling speeds
 const scrollSpeedClouds = 0.2;
 const scrollSpeedTwo = 2;
@@ -39,13 +42,13 @@ let isJumping = false;
 let isFound = false;
 
 // Speeds 
-let runningSpeed = 5;
-let jumpingSpeed = 5;
-let fallingSpeed = 5;
-let ascendSpeed = 5;
+const runningSpeed = 5;
+const jumpingSpeed = 5;
+const fallingSpeed = 5;
+const ascendSpeed = 5;
 
 // Jumping height
-let maxJumpHeight = 120;
+const maxJumpHeight = 120;
 
 // Character
 let gameCharStartX = 50;
@@ -76,8 +79,17 @@ let clouds;
 let trees;
 
 // Collectables position and status
-let collectables;
+let collectables = [];
 let collectableDetection;
+const collectableYPos = [350, 220];
+const collectableDistributionInPixels = 300;
+const collectableWidth = 50;
+
+// flag
+let flag;
+const flagFlownPos = horizon - 170;
+const flagLocationFromEnd = 100;
+let flagPos = horizon;
 
 // Colors
 const treeColor = [87, 221, 111]; // Tree/bushes
@@ -92,12 +104,13 @@ const canyonColor = [166, 190, 198] // The canyon background
 
 // Character colors
 let primaryColor = [223, 39, 59];
+let primaryColorDark = [86, 40, 45];
 let skinColor = [228, 198, 128];
 let secondaryColor = [68, 121, 187];
 let logoColor = [255, 255, 255];
 let strokeColor = [0, 0, 0];
 let trouserColor = [95, 53, 48];
-let eyeColor = [34,139,34];
+const eyeColor = [34,139,34];
 
 // Scroll vars
 let scrollPos = [];
@@ -149,15 +162,20 @@ function setup () {
 	];
 
 	// Collectables
-	collectables = [
-		{ x: -400, y: 294, size: 50, found: false },
-		{ x: 534, y: 294, size: 50, found: false },
-		{ x: 834, y: 394, size: 50, found: false },
-		{ x: 1234, y: 294, size: 50, found: false },
-		{ x: 1600, y: 394, size: 50, found: false },
-		{ x: 2300, y: 394, size: 50, found: false },
-		{ x: 3200, y: 394, size: 50, found: false }
-	];
+	for (let i = gameWorldOffsetLeft + collectableWidth; i < (gameWorldSize + gameWorldOffsetLeft) - flagLocationFromEnd - gameCharacterWidth; i = i + collectableDistributionInPixels) {
+		collectables = collectables.concat([{
+			x: parseInt(random(i - collectableDistributionInPixels - collectableWidth, i)),
+			y: collectableYPos[Math.round(random(0, 1))],
+			size: collectableWidth,
+			found: false	
+		}])
+	}
+
+	// Flag
+	flag = {
+		x_pos: (gameWorldSize + gameWorldOffsetLeft) - flagLocationFromEnd - gameCharacterWidth,
+		isReached: false
+	};
 
 	createCanvas(1024, 576);
 }
@@ -217,7 +235,7 @@ function draw () {
 
 	// Initialise fourth scroller for the parallex effect
 	scrollStart(scrollSpeedFour);
-	
+
 	// Draw the grass effect
 	renderGrass();
 
@@ -233,6 +251,12 @@ function draw () {
 
 	// Draw the collectables
 	renderCollectables(collectables);
+
+	// Draw the flag
+	renderFlagPole(flag);
+
+	// Check flag status
+	checkFlagpole();
 
 	// Stop fourth scrolling effect
 	scrollStop();
@@ -340,6 +364,9 @@ function resetGameState () {
 
 	// Reset scroll positions
 	scrollPos = scrollPos.map(pos => 0);
+
+	// Reset player settings
+	game_score = 0;
 }
 
 // Starts game
@@ -530,6 +557,61 @@ function renderCollectables (data) {
 	pop();
 }
 
+// Function to draw the flag pole
+function renderFlagPole (data) {
+	let x = data.x_pos;
+	if (data.isReached) {
+		// Raise flag
+		if (flagPos > flagFlownPos) {
+			flagPos = flagPos - 5;
+		}
+		push();
+		// Flag
+		translate(x + 8, flagPos);
+		rotate(radians(270));
+		// Waistband
+		fill(255,182,193);
+		rect(1, 0, 57, 10);
+		// Body of pants
+		fill(255,105,180);
+		beginShape()
+		vertex(0, 10);
+		vertex(60, 10);
+		vertex(62, 60);
+		vertex(35, 60);
+		vertex(30, 30);
+		vertex(25, 60);
+		vertex(-2, 60);
+		endShape(CLOSE);
+		// Crotch
+		arc(30, 20, 25, 30, PI - 9, PI + 18.45, OPEN);
+		// Y front
+		line(30, 10, 30, 22);
+		line(30, 22, 38, 30);
+		line(30, 22, 22, 30);
+		// Embroidery
+		textSize(20);
+		stroke(0);
+		strokeWeight(1);
+		fill(255);
+		text('B', 43, 55);
+		pop();
+	}
+	push();
+	// Pole
+	rect(x, horizon, 6, -250);
+	fill(200, 200, 200);
+	noStroke();
+	// Pole shadow
+	rect(x + 1, horizon, 2, -250);
+	fill(255);
+	stroke(...strokeColor);
+	strokeWeight(1);
+	// Pole top
+	ellipse(x + 3.5, horizon - 250, 12, 4);
+	pop();
+}
+
 // Function to draw the instructional game text
 function renderGameText () {
 	push();
@@ -551,6 +633,27 @@ function renderGameText () {
 	const textGameOverX = width / 2;
 	const textGameOverY = isGameOver && !isGameStarted ? height / 2 - 50 : -2000;
 	text('GAME OVER', textGameOverX, textGameOverY);
+
+	fill(255);
+	textSize(30);
+
+	// Score
+	if (isGameStarted) {
+		textAlign(LEFT);
+		text(`SCORE: ${game_score}`, 20, 40);
+	}
+	
+	// High score
+	if (isGameStarted) {
+		textAlign(RIGHT);
+		text(`YOUR HIGH SCORE: ${game_score}`, width - 20, 40);
+	}
+
+	// High score
+	if (isGameStarted) {
+		textAlign(CENTER);
+		text(`LIVES: 3`, width / 2, 40);
+	}
 
 	pop();
 }
@@ -587,31 +690,53 @@ function renderCharacter (_x, y, _state) {
 	const gameCharacterBodyWidth = 26;
 	let state = _state || '';
 	let x = _x + 22;
-	
-	// Give him dead colors
+
+	//state = 'walk-l';
+	//isLeft = true;
+
+	push();
+
+	// Give him dead colors, wings and a halo
 	if (isGameOver) {
 		primaryColor = [255, 255, 255];
 		skinColor = [249, 240, 220];
 		secondaryColor = [255, 255, 255];
 		logoColor = [100, 100, 100];
 		trouserColor = [255, 255, 255];
+		arc(x, y - gameCharacterHeight + 10, gameCharacterBodyWidth * 3, 80, PI - 9, PI + 18.45, CHORD);
+		noFill();
+		stroke(255, 255, 0);
+		strokeWeight(4);
+		ellipse(x, y - gameCharacterHeight - 16, gameCharacterBodyWidth, 10);
 	}
 
 	// Hat
-	var hatYPos = y - gameCharacterHeight;
-	if (state.match(/jump/)) {
-		hatYPos = y - (gameCharacterHeight + 5);
+	var hatYPos = y - gameCharacterHeight + 5.5;
+	if (isFalling) {
+		hatYPos = y - (gameCharacterHeight + 8);
 	}
-	push();
+	
 	strokeWeight(2);
 	stroke(...strokeColor);
 
 	fill(...primaryColor);
-	rect(x - (gameCharacterBodyWidth / 2), hatYPos, gameCharacterBodyWidth, 5);
+	arc(x, hatYPos, gameCharacterBodyWidth, 22, PI - 6.2, PI + 21.9, OPEN);
+	fill(...trouserColor);
+	if (!isLeft && !isRight) {
+		arc(x, hatYPos, gameCharacterBodyWidth, 10, PI - 6.2, PI + 21.9, OPEN);
+	}
+	if (isLeft) {
+		ellipse(x - 10, hatYPos, gameCharacterBodyWidth, 10);
+	}
+	if (isRight) {
+		ellipse((x + gameCharacterBodyWidth) - 16, hatYPos, gameCharacterBodyWidth, 10);
+	}
 
 	// Head
 	fill(...skinColor);
 	rect(x - (gameCharacterBodyWidth / 2), y - 60, gameCharacterBodyWidth, 25);
+
+	fill(...primaryColor);
 
 	// Body
 	if (isFound && flashed < 40) {
@@ -619,10 +744,10 @@ function renderCharacter (_x, y, _state) {
 			fill(255, 255, 0);
 			flashed++;
 		} else {
-			fill(primaryColor);
+			fill(...primaryColor);
 		}
 	} else {
-		fill(primaryColor);
+		fill(...primaryColor);
 	}
 
 	rect(x - (gameCharacterBodyWidth / 2), y - 35, gameCharacterBodyWidth, 20);
@@ -677,119 +802,124 @@ function renderCharacter (_x, y, _state) {
 	fill(...trouserColor);
 	rect(legXPosR, legYPos, 10, legHeighR);
 
-	// Arms
-	var armYPos = y - 38;
-	var armWidthL = 8;
-	var armWidthR = 8;
-	var armXPosR = x + (gameCharacterBodyWidth / 2);
-	var armXPosL = x - (gameCharacterBodyWidth / 2) - armWidthL;
-	if (state.match('jump')) {
-		armYPos = y - 42;
-	}
-	if (state.match('-l')) {
-		armWidthL = 4;
-		armXPosL = x - (gameCharacterBodyWidth / 2) - armWidthL;
-		armXPosR = x + ((gameCharacterBodyWidth / 2) - 18);
-	}
-	if (state.match('-r')) {
-		armWidthR = 4;
-		armXPosL = x - (gameCharacterBodyWidth / 2) + 10;
-		armXPosR = x + (gameCharacterBodyWidth / 2);
-	}
-
-	// Left arm
-	fill(...secondaryColor);
-	rect(armXPosL, armYPos, armWidthL, 20);
-
-	// Right arm
-	fill(...secondaryColor);
-	rect(armXPosR, armYPos, armWidthR, 20);
-
 	// Eyes
-	let eyeXPosL = x - (gameCharacterBodyWidth / 2) + 6;
-	let pupilXPosL = eyeXPosL + 2;
+	let eyeXPosL = x - (gameCharacterBodyWidth / 2) + 9;
+	let pupilXPosL = eyeXPosL;
 	
 	if (state.match('-l')) {
-		eyeXPosL = x - (gameCharacterBodyWidth / 2) + 2;
-		pupilXPosL = eyeXPosL + 1;
+		eyeXPosL = x - (gameCharacterBodyWidth / 2) + 5;
+		pupilXPosL = eyeXPosL - 1.5;
 	}
 	if (state.match('-r')) {
-		eyeXPosL = x + (gameCharacterBodyWidth / 2) - 16;
-		pupilXPosL = eyeXPosL + 3;
+		eyeXPosL = x + (gameCharacterBodyWidth / 2) - 14;
+		pupilXPosL = eyeXPosL + 1.5;
 	}
 
-	let pupilYPos = y - 53;
+	let pupilYPos = y - 52;
 	if (state.match(/jump/)) {
-		pupilYPos = y - 54;
+		pupilYPos = y - 53.5;
+	}
+	if (isFalling) {
+		pupilYPos = y - 50.5;
 	}
 
 	// Left eye
 	stroke(...strokeColor);
 	strokeWeight(1);
 	fill(255);
-	rect(eyeXPosL, y - 55, 5, 5);
+	ellipse(eyeXPosL, y - 52, 6, 6);
 	noStroke();
 	fill(...eyeColor);
-	rect(pupilXPosL, pupilYPos, 2, 2);
+	ellipse(pupilXPosL, pupilYPos, 2, 2);
 
 	// Right eye
 	stroke(...strokeColor);
 	strokeWeight(1);
 	fill(255);
-	rect(eyeXPosL + 8, y - 55, 5, 5);
+	ellipse(eyeXPosL + 9, y - 52, 6, 6);
 	noStroke();
 	fill(...eyeColor);
-	rect(pupilXPosL + 8, pupilYPos, 2, 2);
+	ellipse(pupilXPosL + 9, pupilYPos, 2, 2);
+
+	let mouthXPos = x;
+	if (isLeft) {
+		mouthXPos = x - 3.5;
+	}
+	if (isRight) {
+		mouthXPos = x + 3.5;
+	}
 
 	// Mouth
-	if (state.match(/jump/)) {
-		let jumpWidth = 11;
-		let jumpHeight = 6;
-		let jumpXPosDiff = 13;
-		let jumpYPosDiff = 43;
-		if (state.match(/-/)) {
-			jumpWidth = 5;
-		}
-		if (state.match(/-r/)) {
-			jumpXPosDiff = 4;
-			jumpYPosDiff = 44;
-		}
-		if (state.match(/-l/)) {
-			jumpXPosDiff = 22;
-			jumpYPosDiff = 44;
-		}
-		fill(...strokeColor);
-		noStroke(0);
-		ellipse(x + (gameCharacterBodyWidth / 2) - jumpXPosDiff, y - jumpYPosDiff, jumpWidth, jumpHeight);
+	fill(...strokeColor);
+	noStroke(0);
+	if (isGameOver) {
+		arc(mouthXPos, y - 38, 16, 16, PI - 6.2, PI + 21.9, OPEN);
 	} else {
-		stroke(...strokeColor);
-		strokeWeight(1);
-		noFill();
-		let mouthPosLOffset = 6;
-		if (state.match(/-l/)) {
-			mouthPosLOffset = 2;
+		if (isJumping) {
+			ellipse(mouthXPos, y - 42, 12, 8);
+		} else {
+			arc(mouthXPos, y - 48, 16, 16, PI - 9, PI + 18.45, OPEN);
 		}
-		if (state.match(/-r/)) {
-			mouthPosLOffset = 9;
-		}
-
-		const mouthOffSet = isGameOver ? -4 : 4;
-		const mouthPosYOffSet = isGameOver ? 4 : 0;
-
-		bezier(
-			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset,
-			y - (45 - mouthPosYOffSet),
-			
-			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset + 2,
-			(y - (45 - mouthPosYOffSet)) + mouthOffSet,
-
-			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset + 14,
-			(y - (45 - mouthPosYOffSet)) + mouthOffSet,
-
-			x - (gameCharacterBodyWidth / 2) + mouthPosLOffset + 15,
-			y - (45 - mouthPosYOffSet)
-		);
 	}
+
+	// Arms
+	push();
+	var armYPos = y - 38;
+	var armWidthL = 8;
+	var armWidthR = 8;
+	var armXPosR = x + (gameCharacterBodyWidth / 2);
+	var armXPosL = x - (gameCharacterBodyWidth / 2) - armWidthL;
+
+	if (state.match('jump')) {
+		armYPos = y - 42;
+	}
+	if (state.match('-l')) {
+		armXPosR = x + ((gameCharacterBodyWidth / 2) - 14);
+	}
+	if (state.match('-r')) {
+		armXPosL = x - (gameCharacterBodyWidth / 2) + 6;
+	}
+
+	if (isJumping) {
+		translate(x - (gameCharacterBodyWidth / 2) - armWidthL, y - 38);
+		armYPos = 0;
+		rotate(radians(180));
+	}
+
+	strokeWeight(2);
+	stroke(...strokeColor);
+
+	// Left arm
+	if (!state.match('-l')) {
+		if (isJumping) {
+			armXPosL = 0 - armWidthL;
+			if (state.match('-r')) {
+				armXPosL = 0 - (armWidthL * 3);
+			}
+		}
+		fill(...secondaryColor);
+		rect(armXPosL, armYPos, armWidthL, 20);
+		arc(armXPosL + 4, armYPos + 1.5, armWidthL, 6, PI - 6.2, PI + 21.9, OPEN);
+		fill(...skinColor);
+		rect(armXPosL, armYPos + 21, armWidthL, 4);
+	}
+
+	// Right arm
+	if (!state.match('-r')) {
+		if (isJumping) {
+			armXPosR = 0 - gameCharacterBodyWidth - (armWidthR * 2);
+			if (state.match('-l')) {
+				armXPosR = 0 - (armWidthR * 3);
+			}
+		}
+		fill(...secondaryColor);
+		rect(armXPosR, armYPos, armWidthR, 20);
+		arc(armXPosR + 4, armYPos + 1.5, armWidthR, 6, PI - 6.2, PI + 21.9, OPEN);
+		fill(...skinColor);
+		rect(armXPosR, armYPos + 21, armWidthR, 4);
+	}
+	pop();
+	
 	pop();
 }
 
@@ -1013,9 +1143,18 @@ function collect () {
 				collectable.found = true;
 				flashed = 0;
 				isFound = true;
+				game_score += 1;
 			}
 		}
 	})
+}
+
+// Function to check the current status of the flag
+function checkFlagpole () {
+	if (flag.isReached) { return; }
+	if ( gameChar_xInWorld + gameChar_xOffsetR > flag.x_pos) {
+		flag.isReached = true;	
+	}
 }
 /*
 #########################################################################
@@ -1048,11 +1187,13 @@ function keyPressed () {
 	// Right arrow
 	if (keyCode && keyCode === 39) {
 		isRight = true;
+		isLeft = false;
 	}
 
 	// Left arrow
 	if (keyCode && keyCode === 37) {
 		isLeft = true;
+		isRight = false;
 	}
 
 	// Spacebar or arrow up
