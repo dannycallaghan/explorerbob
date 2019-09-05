@@ -125,6 +125,13 @@ let scrollPos = [];
 #########################################################################
 #########################################################################
 */
+let font;
+
+function preload () {
+	title = loadFont('mario.ttf');
+	font = loadFont('arcadeclassic.ttf');
+}
+
 // Setup
 function setup () {
 
@@ -616,18 +623,23 @@ function renderFlagPole (data) {
 function renderGameText () {
 	push();
 
-	fill(255, 255, 0);
+	fill(0, 255, 255);
 	stroke(0);
 	strokeWeight(2);
-	textFont('Impact');
+	textFont(title);
 
 	// Start text
 	const textStartX = width / 2;
 	const textStartY = !isGameStarted && !isGameOver ? height / 2 - 50 : -2000;
-	textSize(80);
+	textSize(90);
 	textAlign(CENTER);
-	text('CLICK OR PRESS', textStartX, textStartY);
-	text('ANY KEY TO START', textStartX, textStartY + 80);
+
+	text(`BOB'S ADVENTURES`, textStartX, textStartY);
+
+	textFont(font);
+
+	//text('CLICK OR PRESS', textStartX, textStartY);
+	//text('ANY KEY TO START', textStartX, textStartY + 80);
 
 	// Game over text
 	const textGameOverX = width / 2;
@@ -640,19 +652,19 @@ function renderGameText () {
 	// Score
 	if (isGameStarted) {
 		textAlign(LEFT);
-		text(`SCORE: ${game_score}`, 20, 40);
+		text(`SCORE ${game_score}`, 20, 40);
 	}
 	
 	// High score
 	if (isGameStarted) {
 		textAlign(RIGHT);
-		text(`YOUR HIGH SCORE: ${game_score}`, width - 20, 40);
+		text(`YOUR HIGH SCORE ${game_score}`, width - 20, 40);
 	}
 
 	// High score
 	if (isGameStarted) {
 		textAlign(CENTER);
-		text(`LIVES: 3`, width / 2, 40);
+		text(`LIVES 3`, width / 2, 40);
 	}
 
 	pop();
